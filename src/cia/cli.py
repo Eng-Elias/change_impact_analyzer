@@ -203,5 +203,108 @@ def uninstall_hook(ctx: click.Context, path: str) -> None:
         console.print("[yellow]No CIA hook found to remove.[/yellow]")
 
 
+# ---------------------------------------------------------------------------
+# cia test
+# ---------------------------------------------------------------------------
+
+
+@main.command("test")
+@click.argument("path", default=".", type=click.Path(exists=True))
+@click.option("--affected-only", is_flag=True, help="Run only tests affected by current changes.")
+@click.option("--suggest", is_flag=True, help="Show recommended new tests for uncovered changes.")
+@click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
+@click.option("--commit-range", default=None, help="Analyze a specific commit range.")
+@click.pass_context
+def test_cmd(
+    ctx: click.Context,
+    path: str,
+    affected_only: bool,
+    suggest: bool,
+    unstaged: bool,
+    commit_range: str | None,
+) -> None:
+    """Predict affected tests and suggest missing test coverage."""
+    from cia.analyzer.change_detector import ChangeDetector
+    from cia.analyzer.test_analyzer import TestAnalyzer
+    from cia.git.git_integration import GitIntegration
+
+    verbose = ctx.obj["verbose"]
+    repo_path = Path(path).resolve()
+
+    try:
+        git = GitIntegration(repo_path)
+        if not git.is_git_repository():
+            console.print("[red]Error:[/red] Not a Git repository.")
+            ctx.exit(1)
+            return
+    except ValueError as exc:
+        console.print(f"[red]Error:[/red] {exc}")
+        ctx.exit(1)
+        return
+
+    detector = ChangeDetector()
+
+    if commit_range:
+        try:
+            changeset = detector.detect_changes_for_range(git, commit_range)
+        except ValueError as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            ctx.exit(1)
+            return
+    else:
+        changeset = detector.detect_changes(git, staged=not unstaged)
+
+    ta = TestAnalyzer()
+    test_mapping = ta.build_test_mapping(repo_path)
+
+    changed_modules = [c.file_path.stem for c in changeset.changes]
+    affected = ta.predict_affected_tests(changed_modules, test_mapping)
+
+    if affected_only:
+        if not affected:
+            console.print("[green]No tests affected by the current changes.[/green]")
+            return
+        expr = ta.generate_pytest_expression(affected)
+        args = ta.generate_pytest_args(affected)
+        report = {
+            "affected_tests": [str(t) for t in affected],
+            "pytest_expression": expr,
+            "pytest_args": args,
+        }
+        console.print(json.dumps(report, indent=2))
+        if verbose:
+            console.print(f"\n[bold]Run:[/bold] pytest -k \"{expr}\"")
+        return
+
+    if suggest:
+        suggestions = ta.suggest_missing_tests(
+            changed_modules, test_mapping=test_mapping
+        )
+        if not suggestions:
+            console.print("[green]All changed modules have test coverage.[/green]")
+            return
+        report = {
+            "suggestions": [
+                {"entity": s.entity, "reason": s.reason, "suggested_file": s.suggested_file}
+                for s in suggestions
+            ],
+        }
+        console.print(json.dumps(report, indent=2))
+        return
+
+    # Default: show both affected tests and suggestions
+    suggestions = ta.suggest_missing_tests(
+        changed_modules, test_mapping=test_mapping
+    )
+    report = {
+        "affected_tests": [str(t) for t in affected],
+        "missing_test_suggestions": [
+            {"entity": s.entity, "reason": s.reason, "suggested_file": s.suggested_file}
+            for s in suggestions
+        ],
+    }
+    console.print(json.dumps(report, indent=2))
+
+
 if __name__ == "__main__":
     main()
