@@ -44,6 +44,8 @@ def main(ctx: click.Context, verbose: bool) -> None:
 @click.option("--output", "-o", type=click.Path(), default=None, help="Output file path.")
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
 @click.option("--commit-range", default=None, help="Analyze a specific commit range (e.g. HEAD~3..HEAD).")
+@click.option("--threshold", type=int, default=None, help="Fail if risk score exceeds this value (0-100).")
+@click.option("--explain", is_flag=True, help="Show detailed risk breakdown.")
 @click.pass_context
 def analyze(
     ctx: click.Context,
@@ -52,10 +54,13 @@ def analyze(
     output: str | None,
     unstaged: bool,
     commit_range: str | None,
+    threshold: int | None,
+    explain: bool,
 ) -> None:
     """Analyze the impact of staged (or unstaged / commit-range) changes."""
     from cia.analyzer.change_detector import ChangeDetector
     from cia.git.git_integration import GitIntegration
+    from cia.risk.risk_scorer import RiskScorer
 
     verbose = ctx.obj["verbose"]
     repo_path = Path(path).resolve()
@@ -89,6 +94,10 @@ def analyze(
     else:
         changeset = detector.detect_changes(git, staged=not unstaged)
 
+    # --- Risk scoring ---
+    scorer = RiskScorer()
+    risk = scorer.calculate_risk(changeset)
+
     report = {
         "path": str(repo_path),
         "commit_range": commit_range,
@@ -98,8 +107,14 @@ def analyze(
         "deleted": [str(p) for p in changeset.deleted],
         "renamed": [(str(a), str(b)) for a, b in changeset.renamed],
         "total_changes": len(changeset.changes),
-        "risk_level": "low",
+        "risk_level": risk.level.value,
+        "risk_score": risk.overall_score,
+        "factor_scores": risk.factor_scores,
     }
+
+    if explain:
+        report["explanations"] = risk.explanations
+        report["suggestions"] = risk.suggestions
 
     report_str = json.dumps(report, indent=2)
 
@@ -108,6 +123,23 @@ def analyze(
         console.print(f"[green]Report written to {output}[/green]")
     else:
         console.print(report_str)
+
+    if explain and output_format != "json":
+        console.print("\n[bold]Risk Breakdown:[/bold]")
+        for line in risk.explanations:
+            console.print(f"  {line}")
+        if risk.suggestions:
+            console.print("\n[bold]Suggestions:[/bold]")
+            for s in risk.suggestions:
+                console.print(f"  - {s}")
+
+    # --- Threshold enforcement ---
+    if threshold is not None and risk.overall_score > threshold:
+        console.print(
+            f"\n[red]FAIL:[/red] Risk score {risk.overall_score:.1f} "
+            f"exceeds threshold {threshold}"
+        )
+        ctx.exit(1)
 
 
 # ---------------------------------------------------------------------------
