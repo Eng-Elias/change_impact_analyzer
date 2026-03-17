@@ -56,7 +56,7 @@ class TestAnalyze:
     def test_analyze_default(self, runner: CliRunner, git_repo: Path) -> None:
         result = runner.invoke(main, ["analyze", str(git_repo)])
         assert result.exit_code == 0
-        assert "total_changes" in result.output
+        assert "schema_version" in result.output
 
     def test_analyze_verbose(self, runner: CliRunner, git_repo: Path) -> None:
         result = runner.invoke(main, ["-v", "analyze", str(git_repo)])
@@ -68,7 +68,7 @@ class TestAnalyze:
         (git_repo / "hello.py").write_text("x = 2\n", encoding="utf-8")
         result = runner.invoke(main, ["analyze", str(git_repo), "--unstaged"])
         assert result.exit_code == 0
-        assert "total_changes" in result.output
+        assert "schema_version" in result.output
 
     def test_analyze_commit_range(self, runner: CliRunner, git_repo: Path) -> None:
         # Make a second commit
@@ -80,7 +80,7 @@ class TestAnalyze:
             main, ["analyze", str(git_repo), "--commit-range", "HEAD~1..HEAD"]
         )
         assert result.exit_code == 0
-        assert "total_changes" in result.output
+        assert "schema_version" in result.output
 
     def test_analyze_invalid_commit_range(self, runner: CliRunner, git_repo: Path) -> None:
         result = runner.invoke(
@@ -96,7 +96,7 @@ class TestAnalyze:
         assert result.exit_code == 0
         assert out_file.exists()
         content = out_file.read_text(encoding="utf-8")
-        assert "total_changes" in content
+        assert "schema_version" in content
 
     def test_analyze_not_a_repo(self, runner: CliRunner, tmp_path: Path) -> None:
         result = runner.invoke(main, ["analyze", str(tmp_path)])
@@ -147,6 +147,69 @@ class TestHookCommands:
 # ==================================================================
 # cia graph (stub)
 # ==================================================================
+
+
+# ==================================================================
+# cia analyze --format
+# ==================================================================
+
+
+class TestAnalyzeFormats:
+    def test_format_json(self, runner: CliRunner, git_repo: Path) -> None:
+        result = runner.invoke(main, ["analyze", str(git_repo), "-f", "json"])
+        assert result.exit_code == 0
+        assert "schema_version" in result.output
+
+    def test_format_html(self, runner: CliRunner, git_repo: Path) -> None:
+        result = runner.invoke(main, ["analyze", str(git_repo), "-f", "html"])
+        assert result.exit_code == 0
+        assert "<!DOCTYPE html>" in result.output
+
+    def test_format_markdown(self, runner: CliRunner, git_repo: Path) -> None:
+        result = runner.invoke(main, ["analyze", str(git_repo), "-f", "markdown"])
+        assert result.exit_code == 0
+        assert "# Change Impact Analysis Report" in result.output
+
+    def test_format_all_to_files(self, runner: CliRunner, git_repo: Path) -> None:
+        base = git_repo / "report"
+        result = runner.invoke(
+            main, ["analyze", str(git_repo), "-f", "all", "-o", str(base)]
+        )
+        assert result.exit_code == 0
+        assert (git_repo / "report.json").exists()
+        assert (git_repo / "report.html").exists()
+        assert (git_repo / "report.md").exists()
+
+    def test_format_html_to_file(self, runner: CliRunner, git_repo: Path) -> None:
+        out = git_repo / "out.html"
+        result = runner.invoke(
+            main, ["analyze", str(git_repo), "-f", "html", "-o", str(out)]
+        )
+        assert result.exit_code == 0
+        assert out.exists()
+        assert "<!DOCTYPE html>" in out.read_text(encoding="utf-8")
+
+    def test_format_markdown_to_file(self, runner: CliRunner, git_repo: Path) -> None:
+        out = git_repo / "out.md"
+        result = runner.invoke(
+            main, ["analyze", str(git_repo), "-f", "markdown", "-o", str(out)]
+        )
+        assert result.exit_code == 0
+        assert out.exists()
+        assert "# Change Impact" in out.read_text(encoding="utf-8")
+
+    def test_explain_flag(self, runner: CliRunner, git_repo: Path) -> None:
+        result = runner.invoke(
+            main, ["analyze", str(git_repo), "--explain"]
+        )
+        assert result.exit_code == 0
+        assert "Risk Breakdown" in result.output
+
+    def test_threshold_pass(self, runner: CliRunner, git_repo: Path) -> None:
+        result = runner.invoke(
+            main, ["analyze", str(git_repo), "--threshold", "100"]
+        )
+        assert result.exit_code == 0
 
 
 class TestGraphCommand:

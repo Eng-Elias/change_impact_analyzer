@@ -37,11 +37,11 @@ def main(ctx: click.Context, verbose: bool) -> None:
 @click.argument("path", default=".", type=click.Path(exists=True))
 @click.option(
     "--format", "-f", "output_format",
-    type=click.Choice(["json", "html", "markdown"]),
+    type=click.Choice(["json", "html", "markdown", "all"]),
     default="json",
-    help="Output format.",
+    help="Output format (use 'all' to generate every format).",
 )
-@click.option("--output", "-o", type=click.Path(), default=None, help="Output file path.")
+@click.option("--output", "-o", type=click.Path(), default=None, help="Output file path (or base name for 'all').")
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
 @click.option("--commit-range", default=None, help="Analyze a specific commit range (e.g. HEAD~3..HEAD).")
 @click.option("--threshold", type=int, default=None, help="Fail if risk score exceeds this value (0-100).")
@@ -59,7 +59,12 @@ def analyze(
 ) -> None:
     """Analyze the impact of staged (or unstaged / commit-range) changes."""
     from cia.analyzer.change_detector import ChangeDetector
+    from cia.analyzer.impact_analyzer import ImpactAnalyzer, ImpactReport
     from cia.git.git_integration import GitIntegration
+    from cia.graph.dependency_graph import DependencyGraph
+    from cia.report.html_reporter import HtmlReporter
+    from cia.report.json_reporter import JsonReporter
+    from cia.report.markdown_reporter import MarkdownReporter
     from cia.risk.risk_scorer import RiskScorer
 
     verbose = ctx.obj["verbose"]
@@ -98,33 +103,43 @@ def analyze(
     scorer = RiskScorer()
     risk = scorer.calculate_risk(changeset)
 
-    report = {
-        "path": str(repo_path),
-        "commit_range": commit_range,
-        "staged": not unstaged and commit_range is None,
-        "added": [str(p) for p in changeset.added],
-        "modified": [str(p) for p in changeset.modified],
-        "deleted": [str(p) for p in changeset.deleted],
-        "renamed": [(str(a), str(b)) for a, b in changeset.renamed],
-        "total_changes": len(changeset.changes),
-        "risk_level": risk.level.value,
-        "risk_score": risk.overall_score,
-        "factor_scores": risk.factor_scores,
-    }
+    # --- Build ImpactReport ---
+    dep_graph = DependencyGraph()
+    analyzer_engine = ImpactAnalyzer(dep_graph)
+    impact_report = analyzer_engine.analyze_change_set(
+        changeset, risk_score=risk,
+    )
+
+    # --- Generate report(s) ---
+    def _write_or_print(content: str, ext: str) -> None:
+        if output:
+            base = Path(output)
+            if output_format == "all":
+                out_path = base.with_suffix(f".{ext}")
+            else:
+                out_path = base
+            out_path.write_text(content, encoding="utf-8")
+            console.print(f"[green]Report written to {out_path}[/green]")
+        else:
+            console.print(content)
+
+    formats_to_generate = (
+        ["json", "html", "markdown"] if output_format == "all"
+        else [output_format]
+    )
+
+    for fmt in formats_to_generate:
+        if fmt == "json":
+            content = JsonReporter().generate(impact_report)
+            _write_or_print(content, "json")
+        elif fmt == "html":
+            content = HtmlReporter().generate(impact_report)
+            _write_or_print(content, "html")
+        elif fmt == "markdown":
+            content = MarkdownReporter().generate(impact_report)
+            _write_or_print(content, "md")
 
     if explain:
-        report["explanations"] = risk.explanations
-        report["suggestions"] = risk.suggestions
-
-    report_str = json.dumps(report, indent=2)
-
-    if output:
-        Path(output).write_text(report_str, encoding="utf-8")
-        console.print(f"[green]Report written to {output}[/green]")
-    else:
-        console.print(report_str)
-
-    if explain and output_format != "json":
         console.print("\n[bold]Risk Breakdown:[/bold]")
         for line in risk.explanations:
             console.print(f"  {line}")
