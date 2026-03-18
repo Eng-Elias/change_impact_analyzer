@@ -23,4 +23,24 @@ repos:
     rev: v1.8.0
     hooks:
       - id: mypy
-        additional_dependencies: [click, networkx, gitpython, jinja2, rich]
+        additional_dependencies: [click, networkx, gitpython, jinja2, rich, astroid]
+
+  - repo: local
+    hooks:
+      - id: pytest-quick
+        name: pytest (quick smoke test)
+        entry: pytest -x -q --no-header --tb=line tests/
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      - id: cia-self-analysis
+        name: CIA self-analysis
+        entry: cia analyze . --format json
+        language: system
+        types: [python]
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
