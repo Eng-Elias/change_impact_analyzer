@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-from cia.parser.base import Class, Dependency, Function, Import, Symbol, Variable
 from cia.parser.python_parser import PythonParser
 
 

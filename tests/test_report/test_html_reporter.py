@@ -12,9 +12,8 @@ from cia.analyzer.impact_analyzer import (
     ImpactReport,
     ImpactResult,
 )
-from cia.report.html_reporter import HtmlReporter, _heatmap_color, _build_graph_data
+from cia.report.html_reporter import HtmlReporter, _build_graph_data, _heatmap_color
 from cia.risk.risk_factors import RiskLevel, RiskScore
-
 
 # ------------------------------------------------------------------
 # Helpers

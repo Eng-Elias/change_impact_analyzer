@@ -56,7 +56,9 @@ class ChangeDetector:
     # High-level entry point
     # ------------------------------------------------------------------
 
-    def detect_changes(self, git_integration: GitIntegration, *, staged: bool = True) -> ChangeSet:
+    def detect_changes(
+        self, git_integration: GitIntegration, *, staged: bool = True,
+    ) -> ChangeSet:
         """Detect changes via *git_integration* and return a *ChangeSet*.
 
         Parameters
@@ -202,10 +204,10 @@ class ChangeDetector:
         refined: list[tuple[int, int]] = []
         hunks = re.split(r"(?=^@@)", diff_text, flags=re.MULTILINE)
         for hunk in hunks:
-            m = _HUNK_RE.search(hunk)
-            if not m:
+            match = _HUNK_RE.search(hunk)
+            if not match:
                 continue
-            start = int(m.group(2))
+            start = int(match.group(2))
             cur = start - 1
             end = start
             for line in hunk.splitlines()[1:]:

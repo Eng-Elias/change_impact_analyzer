@@ -6,8 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from cia.git.hooks import HookManager, _CIA_MARKER
-
+from cia.git.hooks import _CIA_MARKER, HookManager
 
 # ------------------------------------------------------------------
 # Fixtures

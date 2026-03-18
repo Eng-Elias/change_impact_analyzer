@@ -9,7 +9,6 @@ from git import Repo
 
 from cia.git.git_integration import GitIntegration
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

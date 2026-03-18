@@ -23,7 +23,6 @@ from cia.config import (
     set_config_value,
 )
 
-
 # ==================================================================
 # _flatten
 # ==================================================================
@@ -187,9 +186,9 @@ class TestLoadConfigFile:
     def test_yaml_import_error(self, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc.yaml"
         rc.write_text("x: 1\n", encoding="utf-8")
-        with patch.dict("sys.modules", {"yaml": None}):
-            with pytest.raises(ImportError, match="PyYAML"):
-                load_config_file(rc)
+        with patch.dict("sys.modules", {"yaml": None}), \
+             pytest.raises(ImportError, match="PyYAML"):
+            load_config_file(rc)
 
 
 # ==================================================================

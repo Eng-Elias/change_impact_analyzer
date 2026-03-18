@@ -35,12 +35,12 @@ class DependencyGraph:
     @property
     def module_count(self) -> int:
         """Return the number of modules in the graph."""
-        return self._graph.number_of_nodes()
+        return int(self._graph.number_of_nodes())
 
     @property
     def dependency_count(self) -> int:
         """Return the number of dependency edges in the graph."""
-        return self._graph.number_of_edges()
+        return int(self._graph.number_of_edges())
 
     # ------------------------------------------------------------------
     # Mutation — manual node / edge API
@@ -144,14 +144,13 @@ class DependencyGraph:
         """Return the full set of modules that *module_name* transitively depends on."""
         if module_name not in self._graph:
             return set()
-        descendants = nx.descendants(self._graph, module_name)
-        return descendants
+        return set(nx.descendants(self._graph, module_name))
 
     def get_transitive_dependents(self, module_name: str) -> set[str]:
         """Return all modules transitively affected by changes to *module_name*."""
         if module_name not in self._graph:
             return set()
-        return nx.ancestors(self._graph, module_name)
+        return set(nx.ancestors(self._graph, module_name))
 
     def get_all_modules(self) -> list[str]:
         """Return all module names in the graph."""

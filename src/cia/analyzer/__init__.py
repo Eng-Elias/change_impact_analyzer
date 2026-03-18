@@ -7,7 +7,11 @@ from cia.analyzer.impact_analyzer import (
     ImpactReport,
     ImpactResult,
 )
-from cia.analyzer.test_analyzer import CodeTestMapping, MissingTestSuggestion, TestAnalyzer
+from cia.analyzer.test_analyzer import (
+    CodeTestMapping,
+    MissingTestSuggestion,
+    TestAnalyzer,
+)
 
 __all__ = [
     "AnalysisReport",

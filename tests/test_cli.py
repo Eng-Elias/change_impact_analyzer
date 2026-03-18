@@ -10,7 +10,6 @@ Tests cover:
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from unittest.mock import patch
@@ -25,7 +24,6 @@ from cia.cli import (
     EXIT_OK,
     main,
 )
-
 
 # ------------------------------------------------------------------
 # Fixtures
@@ -193,7 +191,7 @@ class TestConfigCommand:
         rc.write_text("x = 1\n", encoding="utf-8")
         with patch("cia.cli.subprocess.run") as mock_run:
             mock_run.return_value = None
-            result = runner.invoke(main, ["config", "--edit", str(tmp_path)])
+            runner.invoke(main, ["config", "--edit", str(tmp_path)])
             assert mock_run.called
 
     def test_edit_with_editor_env(self, runner: CliRunner, tmp_path: Path) -> None:
@@ -209,7 +207,6 @@ class TestConfigCommand:
     def test_edit_editor_error(self, runner: CliRunner, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
         rc.write_text("x = 1\n", encoding="utf-8")
-        import subprocess as sp
         with patch("cia.cli.subprocess.run", side_effect=FileNotFoundError("no editor")):
             result = runner.invoke(main, ["config", "--edit", str(tmp_path)])
             assert "Error launching editor" in result.output

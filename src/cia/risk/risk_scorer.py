@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import networkx as nx
 
 from cia.analyzer.change_detector import Change, ChangeSet
@@ -11,8 +9,6 @@ from cia.graph.dependency_graph import DependencyGraph
 from cia.risk.risk_factors import (
     DEFAULT_WEIGHTS,
     RiskFactorType,
-    RiskFactors,
-    RiskLevel,
     RiskScore,
     score_to_level,
 )
@@ -106,7 +102,10 @@ class RiskScorer:
         return RiskScore(
             overall_score=round(overall, 2),
             level=level,
-            factor_scores={k.value if hasattr(k, "value") else k: round(v, 2) for k, v in factor_scores.items()},
+            factor_scores={
+                k.value if hasattr(k, "value") else k: round(v, 2)
+                for k, v in factor_scores.items()
+            },
             explanations=explanations,
             suggestions=suggestions,
         )
@@ -235,7 +234,8 @@ class RiskScorer:
         )
         lines: list[str] = []
         for key, score in sorted_factors:
-            label = _labels.get(key, str(key))
+            enum_key = RiskFactorType(key) if isinstance(key, str) else key
+            label = _labels.get(enum_key, str(key))
             lines.append(f"{label}: {score:.0f}/100")
         return lines
 
@@ -252,7 +252,8 @@ class RiskScorer:
             for c in change_set.changes:
                 for sym in c.affected_symbols:
                     suggestions.append(
-                        f"Add tests for modified {sym.symbol_type} '{sym.name}' in {c.file_path}"
+                        f"Add tests for modified {sym.symbol_type} "
+                        f"'{sym.name}' in {c.file_path}"
                     )
             if not suggestions:
                 suggestions.append("Add tests for the modified files")

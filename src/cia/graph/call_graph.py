@@ -34,12 +34,12 @@ class CallGraph:
     @property
     def function_count(self) -> int:
         """Return the number of function nodes in the graph."""
-        return self._graph.number_of_nodes()
+        return int(self._graph.number_of_nodes())
 
     @property
     def call_count(self) -> int:
         """Return the number of call edges in the graph."""
-        return self._graph.number_of_edges()
+        return int(self._graph.number_of_edges())
 
     # ------------------------------------------------------------------
     # Mutation — manual node / edge API
@@ -147,13 +147,13 @@ class CallGraph:
         """Return all symbols that transitively call *qualified_name*."""
         if qualified_name not in self._graph:
             return set()
-        return nx.ancestors(self._graph, qualified_name)
+        return set(nx.ancestors(self._graph, qualified_name))
 
     def get_transitive_callees(self, qualified_name: str) -> set[str]:
         """Return all symbols transitively called by *qualified_name*."""
         if qualified_name not in self._graph:
             return set()
-        return nx.descendants(self._graph, qualified_name)
+        return set(nx.descendants(self._graph, qualified_name))
 
     # ------------------------------------------------------------------
     # Dead code detection

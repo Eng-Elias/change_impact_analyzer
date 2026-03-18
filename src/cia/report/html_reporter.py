@@ -10,7 +10,6 @@ from jinja2 import Environment, select_autoescape
 
 from cia.analyzer.impact_analyzer import ImpactReport
 
-
 # ---------------------------------------------------------------------------
 # Default HTML template (self-contained with inline CSS + D3.js)
 # ---------------------------------------------------------------------------

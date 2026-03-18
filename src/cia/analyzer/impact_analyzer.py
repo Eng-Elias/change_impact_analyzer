@@ -11,7 +11,6 @@ from cia.graph.call_graph import CallGraph
 from cia.graph.dependency_graph import DependencyGraph
 from cia.risk.risk_factors import RiskLevel, RiskScore
 
-
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
@@ -243,11 +242,10 @@ class ImpactAnalyzer:
                 )
             recs.extend(risk_score.suggestions)
 
-        if affected_modules:
-            if len(affected_modules) > 10:
-                recs.append(
-                    "Consider adding integration tests covering the "
-                    f"{len(affected_modules)} affected modules."
-                )
+        if affected_modules and len(affected_modules) > 10:
+            recs.append(
+                "Consider adding integration tests covering the "
+                f"{len(affected_modules)} affected modules."
+            )
 
         return recs

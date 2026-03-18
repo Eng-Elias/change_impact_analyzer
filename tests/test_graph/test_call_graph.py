@@ -10,7 +10,6 @@ import pytest
 from cia.graph.call_graph import CallGraph
 from cia.parser.base import ParsedModule, Symbol
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

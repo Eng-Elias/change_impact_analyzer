@@ -14,7 +14,7 @@ authors:
 affiliations:
   - name: Independent
     index: 1
-date: 2025
+date: 2026
 bibliography: paper.bib
 ---
 

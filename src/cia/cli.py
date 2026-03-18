@@ -102,7 +102,12 @@ def analyze(
     try:
         git = GitIntegration(repo_path)
         if not git.is_git_repository():
-            console.print("[red]Error:[/red] Not a Git repository.")
+            console.print(
+                "[red]Error:[/red] Not a Git repository.\n"
+                "  Hint: Run [bold]git init[/bold] first, or pass the path "
+                "to an existing repo.\n"
+                "  See: https://github.com/Eng-Elias/change_impact_analyzer#quick-start"
+            )
             ctx.exit(EXIT_ERROR)
             return
     except (ValueError, Exception) as exc:
@@ -128,7 +133,11 @@ def analyze(
             try:
                 changeset = detector.detect_changes_for_range(git, commit_range)
             except ValueError as exc:
-                console.print(f"[red]Error:[/red] {exc}")
+                console.print(
+                    f"[red]Error:[/red] {exc}\n"
+                    "  Hint: Use the format [bold]REF1..REF2[/bold] "
+                    "(e.g. HEAD~3..HEAD or main..feature-branch)."
+                )
                 ctx.exit(EXIT_ERROR)
                 return
         else:
@@ -180,10 +189,11 @@ def analyze(
     def _write_or_print(content: str, ext: str) -> None:
         if output:
             base = Path(output)
-            if output_format == "all":
-                out_path = base.with_suffix(f".{ext}")
-            else:
-                out_path = base
+            out_path = (
+                base.with_suffix(f".{ext}")
+                if output_format == "all"
+                else base
+            )
             out_path.write_text(content, encoding="utf-8")
             console.print(f"[green]Report written to {out_path}[/green]")
         else:
@@ -368,7 +378,11 @@ def test_cmd(
     try:
         git = GitIntegration(repo_path)
         if not git.is_git_repository():
-            console.print("[red]Error:[/red] Not a Git repository.")
+            console.print(
+                "[red]Error:[/red] Not a Git repository.\n"
+                "  Hint: Run [bold]git init[/bold] first, or pass the path "
+                "to an existing repo."
+            )
             ctx.exit(EXIT_ERROR)
             return
     except (ValueError, Exception) as exc:
@@ -382,7 +396,11 @@ def test_cmd(
         try:
             changeset = detector.detect_changes_for_range(git, commit_range)
         except ValueError as exc:
-            console.print(f"[red]Error:[/red] {exc}")
+            console.print(
+                f"[red]Error:[/red] {exc}\n"
+                "  Hint: Use the format [bold]REF1..REF2[/bold] "
+                "(e.g. HEAD~3..HEAD)."
+            )
             ctx.exit(EXIT_ERROR)
             return
     else:
@@ -421,7 +439,7 @@ def test_cmd(
                 "[green]All changed modules have test coverage.[/green]"
             )
             return
-        report = {
+        suggest_report: dict[str, object] = {
             "suggestions": [
                 {
                     "entity": s.entity,
@@ -431,14 +449,14 @@ def test_cmd(
                 for s in suggestions
             ],
         }
-        console.print(json.dumps(report, indent=2))
+        console.print(json.dumps(suggest_report, indent=2))
         return
 
     # Default: show both affected tests and suggestions
     suggestions = ta.suggest_missing_tests(
         changed_modules, test_mapping=test_mapping
     )
-    report = {
+    combined_report: dict[str, object] = {
         "affected_tests": [str(t) for t in affected],
         "missing_test_suggestions": [
             {
@@ -449,7 +467,7 @@ def test_cmd(
             for s in suggestions
         ],
     }
-    console.print(json.dumps(report, indent=2))
+    console.print(json.dumps(combined_report, indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -545,7 +563,10 @@ def config_cmd(
     # --- --set ---
     if set_pair:
         if "=" not in set_pair:
-            console.print("[red]Error:[/red] Use --set key=value format.")
+            console.print(
+                "[red]Error:[/red] Use [bold]--set key=value[/bold] format.\n"
+                "  Example: cia config --set analysis.format=markdown"
+            )
             ctx.exit(EXIT_ERROR)
             return
         key, _, value = set_pair.partition("=")

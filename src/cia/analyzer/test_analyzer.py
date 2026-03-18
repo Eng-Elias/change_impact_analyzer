@@ -71,7 +71,11 @@ class TestAnalyzer:
             if any(part in skip_dirs for part in path.parts):
                 continue
             name = path.name
-            if name.startswith("test_") or name.endswith("_test.py") or name in ("tests.py", "test.py"):
+            if (
+                name.startswith("test_")
+                or name.endswith("_test.py")
+                or name in ("tests.py", "test.py")
+            ):
                 results.append(path)
         return results
 
@@ -269,9 +273,8 @@ class TestAnalyzer:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     modules.append(alias.name)
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    modules.append(node.module)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                modules.append(node.module)
         return modules
 
     @staticmethod

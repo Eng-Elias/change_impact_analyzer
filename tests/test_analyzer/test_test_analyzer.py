@@ -6,9 +6,10 @@ from pathlib import Path
 
 import pytest
 
-from cia.analyzer.test_analyzer import CodeTestMapping, MissingTestSuggestion, TestAnalyzer
-from cia.graph.dependency_graph import DependencyGraph
-
+from cia.analyzer.test_analyzer import (
+    CodeTestMapping,
+    TestAnalyzer,
+)
 
 # ------------------------------------------------------------------
 # Fixtures

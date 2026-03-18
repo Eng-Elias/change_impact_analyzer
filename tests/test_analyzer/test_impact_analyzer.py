@@ -18,7 +18,6 @@ from cia.graph.dependency_graph import DependencyGraph
 from cia.parser.base import Symbol
 from cia.risk.risk_factors import RiskLevel, RiskScore
 
-
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------

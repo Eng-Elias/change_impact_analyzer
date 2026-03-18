@@ -5,7 +5,6 @@ from __future__ import annotations
 import stat
 from pathlib import Path
 
-
 # ---------------------------------------------------------------------------
 # Hook script template
 # ---------------------------------------------------------------------------

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 import astroid
 from astroid import nodes
@@ -234,16 +233,19 @@ class PythonParser(BaseParser):
                                 value_type=value_type,
                             )
                         )
-            elif isinstance(node, nodes.AnnAssign) and node.target:
-                if isinstance(node.target, nodes.AssignName):
-                    variables.append(
-                        Variable(
-                            name=node.target.name,
-                            file_path=file_path,
-                            line_number=node.lineno,
-                            value_type="annotated",
-                        )
+            elif (
+                isinstance(node, nodes.AnnAssign)
+                and node.target
+                and isinstance(node.target, nodes.AssignName)
+            ):
+                variables.append(
+                    Variable(
+                        name=node.target.name,
+                        file_path=file_path,
+                        line_number=node.lineno,
+                        value_type="annotated",
                     )
+                )
         return variables
 
     # ------------------------------------------------------------------

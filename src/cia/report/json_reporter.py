@@ -36,8 +36,12 @@ REPORT_SCHEMA: dict[str, Any] = {
                     "change_type": {"type": "string"},
                     "added_lines": {"type": "integer"},
                     "deleted_lines": {"type": "integer"},
-                    "directly_affected": {"type": "array", "items": {"type": "string"}},
-                    "transitively_affected": {"type": "array", "items": {"type": "string"}},
+                    "directly_affected": {
+                        "type": "array", "items": {"type": "string"},
+                    },
+                    "transitively_affected": {
+                        "type": "array", "items": {"type": "string"},
+                    },
                     "affected_modules": {"type": "array", "items": {"type": "string"}},
                 },
             },

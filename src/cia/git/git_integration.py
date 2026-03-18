@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import Any
 
 from git import Repo
 from git.exc import InvalidGitRepositoryError, NoSuchPathError
@@ -74,22 +72,22 @@ class GitIntegration:
 
     def get_staged_diff(self) -> str:
         """Return the unified diff of staged changes."""
-        return self.repo.git.diff("--cached")
+        return str(self.repo.git.diff("--cached"))
 
     def get_unstaged_diff(self) -> str:
         """Return the unified diff of unstaged changes."""
-        return self.repo.git.diff()
+        return str(self.repo.git.diff())
 
     def get_diff_between(self, ref_a: str, ref_b: str) -> str:
         """Return the unified diff between two references."""
-        return self.repo.git.diff(ref_a, ref_b)
+        return str(self.repo.git.diff(ref_a, ref_b))
 
     def get_diff(self, filepath: str | Path, commit: str = "HEAD") -> str:
         """Return the diff for a specific *filepath* against *commit*.
 
         Returns an empty string if the file has no changes.
         """
-        return self.repo.git.diff(commit, "--", str(filepath))
+        return str(self.repo.git.diff(commit, "--", str(filepath)))
 
     # ------------------------------------------------------------------
     # File queries
@@ -145,7 +143,7 @@ class GitIntegration:
         Raises ``KeyError`` if the file does not exist at that commit.
         """
         try:
-            return self.repo.git.show(f"{commit}:{filepath}")
+            return str(self.repo.git.show(f"{commit}:{filepath}"))
         except Exception as exc:
             raise KeyError(
                 f"File {filepath!r} not found at commit {commit!r}"

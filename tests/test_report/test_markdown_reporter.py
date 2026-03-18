@@ -15,7 +15,6 @@ from cia.analyzer.impact_analyzer import (
 from cia.report.markdown_reporter import MarkdownReporter
 from cia.risk.risk_factors import RiskLevel, RiskScore
 
-
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------

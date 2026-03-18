@@ -11,7 +11,6 @@ from cia.analyzer.change_detector import Change, ChangeDetector, ChangeSet
 from cia.graph.dependency_graph import DependencyGraph
 from cia.parser.base import Symbol
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

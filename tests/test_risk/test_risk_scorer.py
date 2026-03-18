@@ -17,7 +17,6 @@ from cia.risk.risk_factors import (
 )
 from cia.risk.risk_scorer import RiskScorer
 
-
 # ------------------------------------------------------------------
 # Helpers
 # ------------------------------------------------------------------

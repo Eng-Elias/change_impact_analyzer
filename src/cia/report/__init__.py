@@ -1,7 +1,7 @@
 """Report generation modules."""
 
 from cia.report.html_reporter import HtmlReporter
-from cia.report.json_reporter import JsonReporter, REPORT_SCHEMA, SCHEMA_VERSION
+from cia.report.json_reporter import REPORT_SCHEMA, SCHEMA_VERSION, JsonReporter
 from cia.report.markdown_reporter import MarkdownReporter
 
 __all__ = [

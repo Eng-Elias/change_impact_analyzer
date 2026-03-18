@@ -10,7 +10,6 @@ import pytest
 from cia.graph.dependency_graph import DependencyGraph
 from cia.parser.base import Import, ParsedModule
 
-
 # ------------------------------------------------------------------
 # Fixtures
 # ------------------------------------------------------------------

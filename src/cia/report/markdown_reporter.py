@@ -6,7 +6,6 @@ from pathlib import Path
 
 from cia.analyzer.impact_analyzer import ImpactReport
 
-
 # ---------------------------------------------------------------------------
 # Emoji helpers (for GitHub / GitLab rendering)
 # ---------------------------------------------------------------------------
