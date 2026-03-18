@@ -1,16 +1,33 @@
-"""Command-line interface for Change Impact Analyzer."""
+"""Command-line interface for Change Impact Analyzer.
+
+Exit codes
+----------
+- **0** — success
+- **1** — high-risk threshold exceeded
+- **2** — runtime / configuration error
+"""
 
 from __future__ import annotations
 
 import json
+import os
+import platform
+import subprocess
+import sys
 from pathlib import Path
 
 import click
 from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from cia import __version__
 
 console = Console()
+
+# Exit-code constants
+EXIT_OK = 0
+EXIT_HIGH_RISK = 1
+EXIT_ERROR = 2
 
 
 # ---------------------------------------------------------------------------
@@ -41,11 +58,17 @@ def main(ctx: click.Context, verbose: bool) -> None:
     default="json",
     help="Output format (use 'all' to generate every format).",
 )
-@click.option("--output", "-o", type=click.Path(), default=None, help="Output file path (or base name for 'all').")
+@click.option("--output", "-o", type=click.Path(), default=None,
+              help="Output file path (or base name for 'all').")
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
-@click.option("--commit-range", default=None, help="Analyze a specific commit range (e.g. HEAD~3..HEAD).")
-@click.option("--threshold", type=int, default=None, help="Fail if risk score exceeds this value (0-100).")
-@click.option("--explain", is_flag=True, help="Show detailed risk breakdown.")
+@click.option("--commit-range", default=None,
+              help="Analyze a specific commit range (e.g. HEAD~3..HEAD).")
+@click.option("--threshold", type=int, default=None,
+              help="Fail if risk score exceeds this value (0-100).")
+@click.option("--explain", is_flag=True,
+              help="Show detailed risk breakdown.")
+@click.option("--test-only", is_flag=True,
+              help="Only show test recommendations (skip full report).")
 @click.pass_context
 def analyze(
     ctx: click.Context,
@@ -56,10 +79,11 @@ def analyze(
     commit_range: str | None,
     threshold: int | None,
     explain: bool,
+    test_only: bool,
 ) -> None:
     """Analyze the impact of staged (or unstaged / commit-range) changes."""
     from cia.analyzer.change_detector import ChangeDetector
-    from cia.analyzer.impact_analyzer import ImpactAnalyzer, ImpactReport
+    from cia.analyzer.impact_analyzer import ImpactAnalyzer
     from cia.git.git_integration import GitIntegration
     from cia.graph.dependency_graph import DependencyGraph
     from cia.report.html_reporter import HtmlReporter
@@ -67,48 +91,90 @@ def analyze(
     from cia.report.markdown_reporter import MarkdownReporter
     from cia.risk.risk_scorer import RiskScorer
 
-    verbose = ctx.obj["verbose"]
+    verbose = ctx.obj.get("verbose", False)
     repo_path = Path(path).resolve()
 
     if verbose:
         console.print(f"[bold]Analyzing changes in:[/bold] {repo_path}")
         console.print(f"[bold]Output format:[/bold] {output_format}")
 
+    # --- Git setup ---
     try:
         git = GitIntegration(repo_path)
         if not git.is_git_repository():
             console.print("[red]Error:[/red] Not a Git repository.")
-            ctx.exit(1)
+            ctx.exit(EXIT_ERROR)
             return
-    except ValueError as exc:
+    except (ValueError, Exception) as exc:
         console.print(f"[red]Error:[/red] {exc}")
-        ctx.exit(1)
+        ctx.exit(EXIT_ERROR)
         return
 
     detector = ChangeDetector()
 
-    if commit_range:
-        if verbose:
-            console.print(f"[bold]Commit range:[/bold] {commit_range}")
-        try:
-            changeset = detector.detect_changes_for_range(git, commit_range)
-        except ValueError as exc:
-            console.print(f"[red]Error:[/red] {exc}")
-            ctx.exit(1)
-            return
-    else:
-        changeset = detector.detect_changes(git, staged=not unstaged)
+    # --- Detect changes (with progress spinner) ---
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+        disable=not verbose,
+    ) as progress:
+        progress.add_task("Detecting changes…", total=None)
+
+        if commit_range:
+            if verbose:
+                console.print(f"[bold]Commit range:[/bold] {commit_range}")
+            try:
+                changeset = detector.detect_changes_for_range(git, commit_range)
+            except ValueError as exc:
+                console.print(f"[red]Error:[/red] {exc}")
+                ctx.exit(EXIT_ERROR)
+                return
+        else:
+            changeset = detector.detect_changes(git, staged=not unstaged)
 
     # --- Risk scoring ---
-    scorer = RiskScorer()
-    risk = scorer.calculate_risk(changeset)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+        disable=not verbose,
+    ) as progress:
+        progress.add_task("Scoring risk…", total=None)
+        scorer = RiskScorer()
+        risk = scorer.calculate_risk(changeset)
 
     # --- Build ImpactReport ---
-    dep_graph = DependencyGraph()
-    analyzer_engine = ImpactAnalyzer(dep_graph)
-    impact_report = analyzer_engine.analyze_change_set(
-        changeset, risk_score=risk,
-    )
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+        disable=not verbose,
+    ) as progress:
+        progress.add_task("Building impact report…", total=None)
+        dep_graph = DependencyGraph()
+        analyzer_engine = ImpactAnalyzer(dep_graph)
+        impact_report = analyzer_engine.analyze_change_set(
+            changeset, risk_score=risk,
+        )
+
+    # --- Test-only mode ---
+    if test_only:
+        tests = impact_report.affected_tests or []
+        if not tests:
+            console.print("[green]No tests affected by the current changes.[/green]")
+        else:
+            console.print(f"[bold]Affected tests ({len(tests)}):[/bold]")
+            for t in tests:
+                console.print(f"  • {t}")
+        if impact_report.recommendations:
+            console.print("\n[bold]Recommendations:[/bold]")
+            for rec in impact_report.recommendations:
+                console.print(f"  - {rec}")
+        return
 
     # --- Generate report(s) ---
     def _write_or_print(content: str, ext: str) -> None:
@@ -154,7 +220,7 @@ def analyze(
             f"\n[red]FAIL:[/red] Risk score {risk.overall_score:.1f} "
             f"exceeds threshold {threshold}"
         )
-        ctx.exit(1)
+        ctx.exit(EXIT_HIGH_RISK)
 
 
 # ---------------------------------------------------------------------------
@@ -167,7 +233,7 @@ def analyze(
 @click.pass_context
 def graph(ctx: click.Context, path: str) -> None:
     """Build and display the dependency graph for a project."""
-    verbose = ctx.obj["verbose"]
+    verbose = ctx.obj.get("verbose", False)
     if verbose:
         console.print(f"[bold]Building dependency graph for:[/bold] {path}")
     console.print("[yellow]Graph builder not yet implemented.[/yellow]")
@@ -186,21 +252,71 @@ def graph(ctx: click.Context, path: str) -> None:
     default="none",
     help="Risk level at or above which the hook blocks the commit.",
 )
+@click.option("--force", is_flag=True,
+              help="Overwrite an existing pre-commit hook.")
+@click.option("--local", "scope", flag_value="local", default=True,
+              help="Install in the current repository only (default).")
+@click.option("--global", "scope", flag_value="global",
+              help="Install in the global Git template directory.")
 @click.pass_context
-def install_hook(ctx: click.Context, path: str, block_on: str) -> None:
+def install_hook(
+    ctx: click.Context,
+    path: str,
+    block_on: str,
+    force: bool,
+    scope: str,
+) -> None:
     """Install the CIA pre-commit hook into the Git repository."""
     from cia.git.hooks import HookManager
 
     repo_path = Path(path).resolve()
-    manager = HookManager(repo_path)
+
+    if scope == "global":
+        # Use the Git template directory
+        try:
+            result = subprocess.run(
+                ["git", "config", "--global", "init.templateDir"],
+                capture_output=True, text=True, check=False,
+            )
+            template_dir = result.stdout.strip()
+            if not template_dir:
+                template_dir = str(Path.home() / ".git-templates")
+            hooks_dir = Path(template_dir) / "hooks"
+            hooks_dir.mkdir(parents=True, exist_ok=True)
+            # Point HookManager at the template dir
+            manager = HookManager.__new__(HookManager)
+            manager._repo_path = Path(template_dir)
+            manager._hooks_dir = hooks_dir
+        except Exception as exc:
+            console.print(f"[red]Error:[/red] {exc}")
+            ctx.exit(EXIT_ERROR)
+            return
+    else:
+        manager = HookManager(repo_path)
+
     try:
+        # Check for existing non-CIA hook
+        if not force and manager.hook_path.exists():
+            from cia.git.hooks import _CIA_MARKER
+            content = manager.hook_path.read_text(encoding="utf-8")
+            if _CIA_MARKER not in content:
+                console.print(
+                    "[red]Error:[/red] A pre-commit hook already exists. "
+                    "Use --force to overwrite."
+                )
+                ctx.exit(EXIT_ERROR)
+                return
+
         hook_path = manager.install(block_threshold=block_on)
-        console.print(f"[green]Pre-commit hook installed:[/green] {hook_path}")
+        scope_label = "globally" if scope == "global" else "locally"
+        console.print(
+            f"[green]Pre-commit hook installed {scope_label}:[/green] {hook_path}"
+        )
         if block_on != "none":
             console.print(f"[bold]Blocking threshold:[/bold] {block_on}")
     except FileNotFoundError as exc:
         console.print(f"[red]Error:[/red] {exc}")
-        ctx.exit(1)
+        ctx.exit(EXIT_ERROR)
 
 
 @main.command("uninstall-hook")
@@ -225,10 +341,13 @@ def uninstall_hook(ctx: click.Context, path: str) -> None:
 
 @main.command("test")
 @click.argument("path", default=".", type=click.Path(exists=True))
-@click.option("--affected-only", is_flag=True, help="Run only tests affected by current changes.")
-@click.option("--suggest", is_flag=True, help="Show recommended new tests for uncovered changes.")
+@click.option("--affected-only", is_flag=True,
+              help="Run only tests affected by current changes.")
+@click.option("--suggest", is_flag=True,
+              help="Show recommended new tests for uncovered changes.")
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
-@click.option("--commit-range", default=None, help="Analyze a specific commit range.")
+@click.option("--commit-range", default=None,
+              help="Analyze a specific commit range.")
 @click.pass_context
 def test_cmd(
     ctx: click.Context,
@@ -243,18 +362,18 @@ def test_cmd(
     from cia.analyzer.test_analyzer import TestAnalyzer
     from cia.git.git_integration import GitIntegration
 
-    verbose = ctx.obj["verbose"]
+    verbose = ctx.obj.get("verbose", False)
     repo_path = Path(path).resolve()
 
     try:
         git = GitIntegration(repo_path)
         if not git.is_git_repository():
             console.print("[red]Error:[/red] Not a Git repository.")
-            ctx.exit(1)
+            ctx.exit(EXIT_ERROR)
             return
-    except ValueError as exc:
+    except (ValueError, Exception) as exc:
         console.print(f"[red]Error:[/red] {exc}")
-        ctx.exit(1)
+        ctx.exit(EXIT_ERROR)
         return
 
     detector = ChangeDetector()
@@ -264,7 +383,7 @@ def test_cmd(
             changeset = detector.detect_changes_for_range(git, commit_range)
         except ValueError as exc:
             console.print(f"[red]Error:[/red] {exc}")
-            ctx.exit(1)
+            ctx.exit(EXIT_ERROR)
             return
     else:
         changeset = detector.detect_changes(git, staged=not unstaged)
@@ -277,7 +396,9 @@ def test_cmd(
 
     if affected_only:
         if not affected:
-            console.print("[green]No tests affected by the current changes.[/green]")
+            console.print(
+                "[green]No tests affected by the current changes.[/green]"
+            )
             return
         expr = ta.generate_pytest_expression(affected)
         args = ta.generate_pytest_args(affected)
@@ -288,7 +409,7 @@ def test_cmd(
         }
         console.print(json.dumps(report, indent=2))
         if verbose:
-            console.print(f"\n[bold]Run:[/bold] pytest -k \"{expr}\"")
+            console.print(f'\n[bold]Run:[/bold] pytest -k "{expr}"')
         return
 
     if suggest:
@@ -296,11 +417,17 @@ def test_cmd(
             changed_modules, test_mapping=test_mapping
         )
         if not suggestions:
-            console.print("[green]All changed modules have test coverage.[/green]")
+            console.print(
+                "[green]All changed modules have test coverage.[/green]"
+            )
             return
         report = {
             "suggestions": [
-                {"entity": s.entity, "reason": s.reason, "suggested_file": s.suggested_file}
+                {
+                    "entity": s.entity,
+                    "reason": s.reason,
+                    "suggested_file": s.suggested_file,
+                }
                 for s in suggestions
             ],
         }
@@ -314,11 +441,150 @@ def test_cmd(
     report = {
         "affected_tests": [str(t) for t in affected],
         "missing_test_suggestions": [
-            {"entity": s.entity, "reason": s.reason, "suggested_file": s.suggested_file}
+            {
+                "entity": s.entity,
+                "reason": s.reason,
+                "suggested_file": s.suggested_file,
+            }
             for s in suggestions
         ],
     }
     console.print(json.dumps(report, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# cia version
+# ---------------------------------------------------------------------------
+
+
+@main.command("version")
+@click.pass_context
+def version_cmd(ctx: click.Context) -> None:
+    """Show detailed version information."""
+    console.print(f"[bold]Change Impact Analyzer[/bold] v{__version__}")
+    console.print(f"  Python  : {platform.python_version()}")
+    console.print(f"  Platform: {platform.platform()}")
+    console.print(f"  CLI     : Click {click.__version__}")
+
+
+# ---------------------------------------------------------------------------
+# cia init
+# ---------------------------------------------------------------------------
+
+
+@main.command("init")
+@click.argument("path", default=".", type=click.Path(exists=True))
+@click.pass_context
+def init_cmd(ctx: click.Context, path: str) -> None:
+    """Initialize CIA in the current project.
+
+    Creates a ``.ciarc`` configuration file with sensible defaults.
+    """
+    from cia.config import DEFAULT_CIARC_CONTENT
+
+    target = Path(path).resolve()
+    rc_path = target / ".ciarc"
+
+    if rc_path.exists():
+        console.print(
+            f"[yellow]Configuration file already exists:[/yellow] {rc_path}"
+        )
+        ctx.exit(EXIT_OK)
+        return
+
+    rc_path.write_text(DEFAULT_CIARC_CONTENT, encoding="utf-8")
+    console.print(f"[green]Created configuration file:[/green] {rc_path}")
+    console.print("Edit .ciarc to customise analysis defaults.")
+
+
+# ---------------------------------------------------------------------------
+# cia config
+# ---------------------------------------------------------------------------
+
+
+@main.command("config")
+@click.option("--set", "set_pair", default=None,
+              help="Set a config value: key=value")
+@click.option("--get", "get_key", default=None,
+              help="Get a config value by key.")
+@click.option("--edit", "open_editor", is_flag=True,
+              help="Open configuration file in $EDITOR.")
+@click.argument("path", default=".", type=click.Path(exists=True))
+@click.pass_context
+def config_cmd(
+    ctx: click.Context,
+    set_pair: str | None,
+    get_key: str | None,
+    open_editor: bool,
+    path: str,
+) -> None:
+    """Show or modify CIA configuration.
+
+    Without flags, prints the current effective configuration.
+    """
+    from cia.config import (
+        find_config_file,
+        get_config_value,
+        load_config,
+        set_config_value,
+    )
+
+    target = Path(path).resolve()
+    cfg = load_config(target)
+
+    # --- --get ---
+    if get_key:
+        val = get_config_value(cfg, get_key)
+        if val is None:
+            console.print(f"[yellow]Key not found:[/yellow] {get_key}")
+            ctx.exit(EXIT_ERROR)
+        else:
+            console.print(f"{get_key} = {val}")
+        return
+
+    # --- --set ---
+    if set_pair:
+        if "=" not in set_pair:
+            console.print("[red]Error:[/red] Use --set key=value format.")
+            ctx.exit(EXIT_ERROR)
+            return
+        key, _, value = set_pair.partition("=")
+        rc = find_config_file(target)
+        if rc is None:
+            rc = target / ".ciarc"
+        set_config_value(rc, key.strip(), value.strip())
+        console.print(f"[green]Set[/green] {key.strip()} = {value.strip()}")
+        return
+
+    # --- --edit ---
+    if open_editor:
+        rc = find_config_file(target)
+        if rc is None:
+            console.print(
+                "[yellow]No .ciarc found. Run 'cia init' first.[/yellow]"
+            )
+            ctx.exit(EXIT_ERROR)
+            return
+        editor = os.environ.get("EDITOR", os.environ.get("VISUAL", ""))
+        if not editor:
+            editor = "notepad" if sys.platform == "win32" else "vi"
+        try:
+            subprocess.run([editor, str(rc)], check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            console.print(f"[red]Error launching editor:[/red] {exc}")
+            ctx.exit(EXIT_ERROR)
+        return
+
+    # --- Default: show config ---
+    rc = find_config_file(target)
+    if rc:
+        console.print(f"[bold]Config file:[/bold] {rc}")
+    else:
+        console.print("[dim]No .ciarc file found (using defaults).[/dim]")
+
+    console.print("\n[bold]Effective configuration:[/bold]")
+    for key, val in sorted(cfg.items()):
+        console.print(f"  {key} = {val}")
 
 
 if __name__ == "__main__":
