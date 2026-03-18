@@ -1,0 +1,12 @@
+# Change Impact Analyzer configuration for the sample project
+# See: https://github.com/Eng-Elias/change_impact_analyzer
+
+[analysis]
+format = "json"
+threshold = 75
+explain = true
+unstaged = false
+test_only = false
+
+[hook]
+block_on = "high"
