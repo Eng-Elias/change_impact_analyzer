@@ -259,7 +259,7 @@ If you use Change Impact Analyzer in your research, please cite:
              Changes with Static Analysis and Graph Traversal},
   author  = {{Change Impact Analyzer Contributors}},
   journal = {Journal of Open Source Software},
-  year    = {2025},
+  year    = {2026},
   doi     = {10.21105/joss.XXXXX},
   url     = {https://github.com/Eng-Elias/change_impact_analyzer}
 }

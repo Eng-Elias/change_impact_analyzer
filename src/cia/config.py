@@ -43,7 +43,7 @@ _ALL_RC_FILES = (*_TOML_FILES, *_JSON_FILES, *_YAML_FILES)
 # The TOML template written by ``cia init``.
 DEFAULT_CIARC_CONTENT = """\
 # Change Impact Analyzer configuration
-# See: https://github.com/change-impact-analyzer/change-impact-analyzer
+# See: https://github.com/Eng-Elias/change_impact_analyzer
 
 [analysis]
 format = "json"

@@ -47,10 +47,10 @@ dev = [
 cia = "cia.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/change-impact-analyzer/change-impact-analyzer"
-Documentation = "https://github.com/change-impact-analyzer/change-impact-analyzer#readme"
-Repository = "https://github.com/change-impact-analyzer/change-impact-analyzer"
-Issues = "https://github.com/change-impact-analyzer/change-impact-analyzer/issues"
+Homepage = "https://github.com/Eng-Elias/change_impact_analyzer"
+Documentation = "https://github.com/Eng-Elias/change_impact_analyzer#readme"
+Repository = "https://github.com/Eng-Elias/change_impact_analyzer"
+Issues = "https://github.com/Eng-Elias/change_impact_analyzer/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cia"]
