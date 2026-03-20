@@ -241,6 +241,10 @@ repos:
 | `1` | Risk score exceeds the configured threshold |
 | `2` | Runtime or configuration error |
 
+## Tutorial
+
+Follow the **[Step-by-Step Tutorial](docs/tutorial.md)** to build a Feature Flag System from scratch while using CIA to catch real developer mistakes — dangerous renames, silent format changes, algorithm swaps, missing tests, and risky multi-file commits.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and PR guidelines.
