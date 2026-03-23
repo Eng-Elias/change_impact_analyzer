@@ -1,11 +1,8 @@
 # Tutorial: Feature Flag System — Step-by-Step with CIA
 
-This hands-on tutorial walks you through building a **Feature Flag System** from
-scratch while using **Change Impact Analyzer (CIA)** to catch mistakes, assess
-risk, and predict test impact at every step.
+This hands-on tutorial walks you through building a **Feature Flag System** from scratch while using **Change Impact Analyzer (CIA)** to catch mistakes, assess risk, and predict test impact at every step.
 
-You will copy-paste real code, commit incrementally, and run every CIA command in
-realistic developer scenarios — including mistakes that CIA helps you avoid.
+You will copy-paste real code, commit incrementally, and run every CIA command in realistic developer scenarios — including mistakes that CIA helps you avoid.
 
 ---
 
@@ -46,9 +43,7 @@ You also need **Git** installed and available in your PATH.
 
 ## 2. Project Overview
 
-We are building a **Feature Flag System** — the kind of infrastructure that
-powers A/B tests, gradual rollouts, and kill switches at companies like GitHub,
-Netflix, and LaunchDarkly.
+We are building a **Feature Flag System** — the kind of infrastructure that powers A/B tests, gradual rollouts, and kill switches at companies like GitHub, Netflix, and LaunchDarkly.
 
 **Architecture:**
 
