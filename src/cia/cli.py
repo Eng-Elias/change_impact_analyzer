@@ -24,6 +24,63 @@ from cia import __version__
 
 console = Console()
 
+_SKIP_DIRS = {"__pycache__", ".git", ".tox", "node_modules", ".venv", "venv",
+              ".mypy_cache", ".ruff_cache", ".pytest_cache", "dist", "build",
+              ".eggs", ".egg-info"}
+
+
+def _build_project_graph(
+    repo_path: Path,
+    *,
+    verbose: bool = False,
+) -> "DependencyGraph":
+    """Parse every ``.py`` file under *repo_path* and return a populated graph."""
+    from cia.graph.dependency_graph import DependencyGraph
+    from cia.parser.python_parser import PythonParser
+
+    parser = PythonParser()
+    py_files = sorted(
+        p for p in repo_path.rglob("*.py")
+        if not any(part in _SKIP_DIRS for part in p.parts)
+    )
+    modules = []
+    for pf in py_files:
+        try:
+            modules.append(parser.parse_file(pf))
+        except Exception:  # noqa: BLE001
+            if verbose:
+                console.print(f"[dim]  skip (parse error): {pf}[/dim]")
+    graph = DependencyGraph()
+    graph.build_from_modules(modules)
+    if verbose:
+        console.print(
+            f"[dim]  Graph: {graph.module_count} modules, "
+            f"{graph.dependency_count} edges[/dim]"
+        )
+    return graph
+
+
+def _approximate_coverage(
+    repo_path: Path,
+    graph: "DependencyGraph",
+) -> dict[str, float]:
+    """Build a rough coverage map from test-file imports.
+
+    Modules imported by at least one test file get 60%; others get 0%.
+    This is a heuristic — real coverage data should override it.
+    """
+    from cia.analyzer.test_analyzer import TestAnalyzer
+
+    ta = TestAnalyzer()
+    mapping = ta.build_test_mapping(repo_path, graph)
+    covered: set[str] = set()
+    for m in mapping.values():
+        covered.update(m.covered_modules)
+    result: dict[str, float] = {}
+    for mod in graph.get_all_modules():
+        result[mod] = 60.0 if mod in covered else 0.0
+    return result
+
 # Exit-code constants
 EXIT_OK = 0
 EXIT_HIGH_RISK = 1
@@ -143,6 +200,18 @@ def analyze(
         else:
             changeset = detector.detect_changes(git, staged=not unstaged)
 
+    # --- Build dependency graph ---
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+        disable=not verbose,
+    ) as progress:
+        progress.add_task("Building dependency graph…", total=None)
+        dep_graph = _build_project_graph(repo_path, verbose=verbose)
+        coverage_data = _approximate_coverage(repo_path, dep_graph)
+
     # --- Risk scoring ---
     with Progress(
         SpinnerColumn(),
@@ -153,7 +222,9 @@ def analyze(
     ) as progress:
         progress.add_task("Scoring risk…", total=None)
         scorer = RiskScorer()
-        risk = scorer.calculate_risk(changeset)
+        risk = scorer.calculate_risk(
+            changeset, graph=dep_graph, coverage_data=coverage_data,
+        )
 
     # --- Build ImpactReport ---
     with Progress(
@@ -164,7 +235,6 @@ def analyze(
         disable=not verbose,
     ) as progress:
         progress.add_task("Building impact report…", total=None)
-        dep_graph = DependencyGraph()
         analyzer_engine = ImpactAnalyzer(dep_graph)
         impact_report = analyzer_engine.analyze_change_set(
             changeset, risk_score=risk,
@@ -240,13 +310,84 @@ def analyze(
 
 @main.command()
 @click.argument("path", default=".", type=click.Path(exists=True))
+@click.option(
+    "--format", "-f", "output_format",
+    type=click.Choice(["json", "text", "dot"]),
+    default="text",
+    help="Output format for the graph.",
+)
+@click.option("--output", "-o", type=click.Path(), default=None,
+              help="Write graph to a file instead of stdout.")
 @click.pass_context
-def graph(ctx: click.Context, path: str) -> None:
+def graph(
+    ctx: click.Context,
+    path: str,
+    output_format: str,
+    output: str | None,
+) -> None:
     """Build and display the dependency graph for a project."""
     verbose = ctx.obj.get("verbose", False)
+    repo_path = Path(path).resolve()
+
     if verbose:
-        console.print(f"[bold]Building dependency graph for:[/bold] {path}")
-    console.print("[yellow]Graph builder not yet implemented.[/yellow]")
+        console.print(f"[bold]Building dependency graph for:[/bold] {repo_path}")
+
+    dep_graph = _build_project_graph(repo_path, verbose=verbose)
+
+    if dep_graph.module_count == 0:
+        console.print("[yellow]No Python modules found.[/yellow]")
+        return
+
+    if output_format == "json":
+        content = dep_graph.to_json()
+    elif output_format == "dot":
+        content = _graph_to_dot(dep_graph)
+    else:
+        content = _graph_to_text(dep_graph)
+
+    if output:
+        Path(output).write_text(content, encoding="utf-8")
+        console.print(f"[green]Graph written to {output}[/green]")
+    else:
+        console.print(content)
+
+    console.print(
+        f"\n[bold]{dep_graph.module_count}[/bold] modules, "
+        f"[bold]{dep_graph.dependency_count}[/bold] edges"
+    )
+    cycles = dep_graph.find_cycles()
+    if cycles:
+        console.print(
+            f"[yellow]⚠ {len(cycles)} circular dependency(ies) detected[/yellow]"
+        )
+
+
+def _graph_to_text(dep_graph: "DependencyGraph") -> str:
+    """Render the dependency graph as a text tree."""
+    from cia.graph.dependency_graph import DependencyGraph
+
+    lines: list[str] = []
+    for module in sorted(dep_graph.get_all_modules()):
+        deps = dep_graph.get_dependencies(module)
+        dependents = dep_graph.get_dependents(module)
+        lines.append(f"{module}")
+        if deps:
+            lines.append(f"  imports: {', '.join(sorted(deps))}")
+        if dependents:
+            lines.append(f"  used by: {', '.join(sorted(dependents))}")
+    return "\n".join(lines)
+
+
+def _graph_to_dot(dep_graph: "DependencyGraph") -> str:
+    """Render the dependency graph in Graphviz DOT format."""
+    lines = ["digraph dependencies {", "  rankdir=LR;"]
+    for module in sorted(dep_graph.get_all_modules()):
+        lines.append(f'  "{module}";')
+    for module in sorted(dep_graph.get_all_modules()):
+        for dep in sorted(dep_graph.get_dependencies(module)):
+            lines.append(f'  "{module}" -> "{dep}";')
+    lines.append("}")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -406,11 +547,17 @@ def test_cmd(
     else:
         changeset = detector.detect_changes(git, staged=not unstaged)
 
+    dep_graph = _build_project_graph(repo_path, verbose=verbose)
+
     ta = TestAnalyzer()
-    test_mapping = ta.build_test_mapping(repo_path)
+    test_mapping = ta.build_test_mapping(repo_path, dep_graph)
 
     changed_modules = [c.file_path.stem for c in changeset.changes]
-    affected = ta.predict_affected_tests(changed_modules, test_mapping)
+    # Include transitive dependents so downstream tests are found
+    expanded: set[str] = set(changed_modules)
+    for mod in changed_modules:
+        expanded.update(dep_graph.get_transitive_dependents(mod))
+    affected = ta.predict_affected_tests(sorted(expanded), test_mapping)
 
     if affected_only:
         if not affected:

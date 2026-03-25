@@ -120,14 +120,29 @@ touch sdk/__init__.py
 touch tests/__init__.py
 ```
 
-### Step 3: Initial commit
+### Step 3: Add a `.gitignore`
+
+```bash
+cat > .gitignore << 'EOF'
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.coverage
+EOF
+```
+
+### Step 4: Initial commit
 
 ```bash
 git add -A
 git commit -m "chore: initial project structure"
 ```
 
-### Step 4: Initialize CIA
+### Step 5: Initialize CIA
 
 ```bash
 cia init .
@@ -139,7 +154,7 @@ This creates a `.ciarc` configuration file. You should see:
 Created .ciarc in /path/to/feature_flags
 ```
 
-### Step 5: Explore CIA commands
+### Step 6: Explore CIA commands
 
 ```bash
 # See all available commands

@@ -286,7 +286,8 @@ class TestSetConfigValue:
         rc.write_text("", encoding="utf-8")
         set_config_value(rc, "format", "html")
         cfg = load_config_file(rc)
-        assert cfg["format"] == "html"
+        # Bare key 'format' is routed to [analysis] section
+        assert cfg["analysis.format"] == "html"
 
     def test_set_section_key(self, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
@@ -300,26 +301,36 @@ class TestSetConfigValue:
         rc.write_text("", encoding="utf-8")
         set_config_value(rc, "threshold", "80")
         cfg = load_config_file(rc)
-        assert cfg["threshold"] == 80
+        # Bare key 'threshold' is routed to [analysis] section
+        assert cfg["analysis.threshold"] == 80
 
     def test_set_bool(self, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
         rc.write_text("", encoding="utf-8")
         set_config_value(rc, "explain", "true")
         cfg = load_config_file(rc)
-        assert cfg["explain"] is True
+        # Bare key 'explain' is routed to [analysis] section
+        assert cfg["analysis.explain"] is True
 
     def test_set_json_file(self, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc.json"
         rc.write_text("{}", encoding="utf-8")
         set_config_value(rc, "format", "html")
         data = json.loads(rc.read_text(encoding="utf-8"))
-        assert data["format"] == "html"
+        # Bare key 'format' is routed to 'analysis' section
+        assert data["analysis"]["format"] == "html"
 
     def test_creates_file(self, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
         set_config_value(rc, "format", "html")
         assert rc.exists()
+
+    def test_set_unknown_key_stays_toplevel(self, tmp_path: Path) -> None:
+        rc = tmp_path / ".ciarc"
+        rc.write_text("", encoding="utf-8")
+        set_config_value(rc, "custom_key", "val")
+        cfg = load_config_file(rc)
+        assert cfg["custom_key"] == "val"
 
 
 # ==================================================================

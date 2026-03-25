@@ -215,11 +215,23 @@ def get_config_value(cfg: dict[str, Any], key: str) -> Any:
     return None
 
 
+_SECTION_MAP: dict[str, str] = {
+    "format": "analysis",
+    "threshold": "analysis",
+    "explain": "analysis",
+    "unstaged": "analysis",
+    "test_only": "analysis",
+    "block_on": "hook",
+    "path": "output",
+}
+
+
 def set_config_value(path: Path, key: str, value: str) -> None:
     """Set *key* = *value* in a TOML ``.ciarc`` file.
 
     Creates or updates the file.  Only simple ``section.key = value``
-    pairs are supported for TOML files.
+    pairs are supported for TOML files.  Bare keys like ``format`` are
+    automatically placed into their canonical section (e.g. ``[analysis]``).
     """
     # Parse the value
     parsed: Any
@@ -238,11 +250,14 @@ def set_config_value(path: Path, key: str, value: str) -> None:
     else:
         raw = {}
 
-    # Split key into section.key
+    # Split key into section.key, or resolve bare key to its section
     parts = key.split(".", maxsplit=1)
     if len(parts) == 2:
         section, subkey = parts
         raw.setdefault(section, {})[subkey] = parsed
+    elif key in _SECTION_MAP:
+        section = _SECTION_MAP[key]
+        raw.setdefault(section, {})[key] = parsed
     else:
         raw[key] = parsed
 

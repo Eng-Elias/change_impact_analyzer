@@ -121,6 +121,11 @@ class TestAnalyzer:
                 stem = imp.split(".")[0]
                 if stem not in mapping.covered_modules:
                     mapping.covered_modules.append(stem)
+                # Also add the leaf module name for dotted imports
+                # e.g. "flags.flag_definition" → also add "flag_definition"
+                leaf = imp.rsplit(".", maxsplit=1)[-1]
+                if leaf != stem and leaf not in mapping.covered_modules:
+                    mapping.covered_modules.append(leaf)
 
         return mapping
 

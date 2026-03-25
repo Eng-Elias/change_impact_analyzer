@@ -107,7 +107,9 @@ class DependencyGraph:
         """Build the dependency graph from a list of *ParsedModule* objects.
 
         Nodes are created for every module.  Edges are created for every
-        import whose top-level name matches an existing module node.
+        import whose top-level *or leaf* name matches an existing module
+        node.  This handles both flat layouts (``import flag_definition``)
+        and package layouts (``from flags.flag_definition import …``).
         """
         for module in modules:
             self.add_module(module.module_name, filepath=module.file_path)
@@ -115,8 +117,22 @@ class DependencyGraph:
         module_names = {m.module_name for m in modules}
         for module in modules:
             for imp in module.imports:
-                target = imp.module.split(".")[0] if imp.module else ""
-                if target and target in module_names:
+                if not imp.module:
+                    continue
+                parts = imp.module.split(".")
+                # Try every segment: top-level first, then leaf, then
+                # intermediate segments — first match wins.
+                target: str | None = None
+                if parts[0] in module_names:
+                    target = parts[0]
+                elif len(parts) > 1 and parts[-1] in module_names:
+                    target = parts[-1]
+                else:
+                    for seg in parts[1:-1]:
+                        if seg in module_names:
+                            target = seg
+                            break
+                if target and target != module.module_name:
                     self.add_dependency(
                         from_module=module.module_name,
                         to_module=target,

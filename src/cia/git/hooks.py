@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import stat
+import sys
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -10,7 +11,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 _HOOK_TEMPLATE = '''\
-#!/usr/bin/env python3
+#!{python_executable}
 """CIA pre-commit hook — runs impact analysis on staged changes."""
 
 import json
@@ -18,13 +19,14 @@ import subprocess
 import sys
 
 BLOCK_THRESHOLD = "{block_threshold}"
+PYTHON = r"{python_executable}"
 
 RISK_ORDER = {{"none": 0, "low": 1, "medium": 2, "high": 3}}
 
 
 def main() -> int:
     result = subprocess.run(
-        [sys.executable, "-m", "cia", "analyze", "--format", "json"],
+        [PYTHON, "-m", "cia", "analyze", "--format", "json"],
         capture_output=True,
         text=True,
     )
@@ -106,7 +108,10 @@ class HookManager:
                 f"Git hooks directory not found: {self._hooks_dir}"
             )
 
-        content = _HOOK_TEMPLATE.format(block_threshold=block_threshold)
+        content = _HOOK_TEMPLATE.format(
+            block_threshold=block_threshold,
+            python_executable=sys.executable,
+        )
         self.hook_path.write_text(content, encoding="utf-8")
         self.hook_path.chmod(self.hook_path.stat().st_mode | stat.S_IEXEC)
         return self.hook_path
