@@ -81,6 +81,54 @@ def _approximate_coverage(
         result[mod] = 60.0 if mod in covered else 0.0
     return result
 
+def _extract_changed_symbols(
+    changeset: "ChangeSet",
+    repo_path: Path,
+) -> list[dict[str, str]]:
+    """Parse changed ``.py`` files and return symbols whose lines overlap the diff.
+
+    Each entry is a dict with keys ``module``, ``name``,
+    ``qualified_name``, and ``symbol_type``.
+    """
+    import ast
+
+    symbols: list[dict[str, str]] = []
+    for change in changeset.changes:
+        if not str(change.file_path).endswith(".py"):
+            continue
+        abs_path = repo_path / change.file_path
+        if not abs_path.exists():
+            continue
+        try:
+            source = abs_path.read_text(encoding="utf-8")
+            tree = ast.parse(source, filename=str(abs_path))
+        except (SyntaxError, UnicodeDecodeError):
+            continue
+        changed_lines = set(change.added_lines)
+        module_stem = change.file_path.stem
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if any(ln in changed_lines
+                       for ln in range(node.lineno, node.end_lineno + 1)):
+                    # Determine qualified name (ClassName.method or just func)
+                    sym_type = "function"
+                    qual = f"{module_stem}::{node.name}"
+                    # Check if nested inside a class
+                    for cls_node in ast.walk(tree):
+                        if isinstance(cls_node, ast.ClassDef):
+                            if node in ast.walk(cls_node) and node is not cls_node:
+                                qual = f"{module_stem}::{cls_node.name}.{node.name}"
+                                sym_type = "method"
+                                break
+                    symbols.append({
+                        "module": module_stem,
+                        "name": node.name,
+                        "qualified_name": qual,
+                        "symbol_type": sym_type,
+                    })
+    return symbols
+
+
 # Exit-code constants
 EXIT_OK = 0
 EXIT_HIGH_RISK = 1
@@ -266,6 +314,8 @@ def analyze(
             )
             out_path.write_text(content, encoding="utf-8")
             console.print(f"[green]Report written to {out_path}[/green]")
+        elif ext == "json":
+            click.echo(content)
         else:
             console.print(content)
 
@@ -559,6 +609,9 @@ def test_cmd(
         expanded.update(dep_graph.get_transitive_dependents(mod))
     affected = ta.predict_affected_tests(sorted(expanded), test_mapping)
 
+    # Extract symbols from changed files for method-level suggestions
+    changed_symbols = _extract_changed_symbols(changeset, repo_path)
+
     if affected_only:
         if not affected:
             console.print(
@@ -579,7 +632,8 @@ def test_cmd(
 
     if suggest:
         suggestions = ta.suggest_missing_tests(
-            changed_modules, test_mapping=test_mapping
+            changed_modules, test_mapping=test_mapping,
+            changed_symbols=changed_symbols or None,
         )
         if not suggestions:
             console.print(
@@ -601,7 +655,8 @@ def test_cmd(
 
     # Default: show both affected tests and suggestions
     suggestions = ta.suggest_missing_tests(
-        changed_modules, test_mapping=test_mapping
+        changed_modules, test_mapping=test_mapping,
+        changed_symbols=changed_symbols or None,
     )
     combined_report: dict[str, object] = {
         "affected_tests": [str(t) for t in affected],

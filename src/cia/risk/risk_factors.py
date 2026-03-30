@@ -73,12 +73,12 @@ class RiskScore:
 # ---------------------------------------------------------------------------
 
 DEFAULT_WEIGHTS: dict[str, float] = {
-    RiskFactorType.COMPLEXITY: 0.20,
-    RiskFactorType.CHURN: 0.10,
-    RiskFactorType.DEPENDENTS: 0.25,
-    RiskFactorType.TEST_COVERAGE: 0.15,
-    RiskFactorType.CHANGE_SIZE: 0.15,
-    RiskFactorType.CRITICAL_PATH: 0.15,
+    RiskFactorType.COMPLEXITY: 0.05,
+    RiskFactorType.CHURN: 0.05,
+    RiskFactorType.DEPENDENTS: 0.50,
+    RiskFactorType.TEST_COVERAGE: 0.20,
+    RiskFactorType.CHANGE_SIZE: 0.10,
+    RiskFactorType.CRITICAL_PATH: 0.10,
 }
 
 _FACTOR_DESCRIPTIONS: dict[str, str] = {

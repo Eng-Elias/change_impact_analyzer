@@ -37,7 +37,8 @@ def main() -> int:
             print(result.stdout)
             return 0
 
-        risk = report.get("risk_level", "low")
+        risk_data = report.get("risk", {{}})
+        risk = risk_data.get("level", report.get("risk_level", "low"))
         print(result.stdout)
 
         threshold = RISK_ORDER.get(BLOCK_THRESHOLD, 0)

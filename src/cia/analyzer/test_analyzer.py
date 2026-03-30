@@ -186,6 +186,7 @@ class TestAnalyzer:
         changed_entities: list[str],
         existing_coverage: dict[str, float] | None = None,
         test_mapping: dict[Path, CodeTestMapping] | None = None,
+        changed_symbols: list[dict[str, str]] | None = None,
     ) -> list[MissingTestSuggestion]:
         """Identify entities that lack test coverage and suggest new tests.
 
@@ -199,6 +200,11 @@ class TestAnalyzer:
             Optional mapping of test files to *TestMapping*; used to
             check whether a module is already covered by at least one
             test.
+        changed_symbols:
+            Optional list of dicts with keys ``module``, ``name``,
+            ``qualified_name``, and ``symbol_type``.  When a module
+            already has test coverage but a specific symbol is never
+            called in any test, a method-level suggestion is emitted.
         """
         coverage = existing_coverage or {}
         mapping = test_mapping or {}
@@ -231,6 +237,31 @@ class TestAnalyzer:
                         suggested_file=f"tests/test_{stem}.py",
                     )
                 )
+
+        # Symbol-level suggestions for covered modules
+        if changed_symbols and mapping:
+            all_test_calls: set[str] = set()
+            for m in mapping.values():
+                all_test_calls.update(m.called_functions)
+
+            already_suggested: set[str] = {s.entity for s in suggestions}
+            for sym in changed_symbols:
+                module = sym.get("module", "")
+                name = sym.get("name", "")
+                qualified = sym.get("qualified_name", f"{module}::{name}")
+                symbol_type = sym.get("symbol_type", "function")
+                if not name or qualified in already_suggested:
+                    continue
+                # Only suggest if the module IS covered (otherwise the
+                # module-level suggestion above already covers it).
+                if module in covered_modules and name not in all_test_calls:
+                    suggestions.append(
+                        MissingTestSuggestion(
+                            entity=qualified,
+                            reason=f"New {symbol_type} with no test coverage",
+                            suggested_file=f"tests/test_{module}.py",
+                        )
+                    )
 
         return suggestions
 
