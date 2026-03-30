@@ -40,7 +40,7 @@ def _build_project_graph(
     verbose: bool = False,
 ) -> DependencyGraph:
     """Parse every ``.py`` file under *repo_path* and return a populated graph."""
-    from cia.graph.dependency_graph import DependencyGraph as DependencyGraph  # noqa: F811
+    from cia.graph.dependency_graph import DependencyGraph as DependencyGraph  # noqa: F811, I001
     from cia.parser.python_parser import PythonParser
 
     parser = PythonParser()
@@ -121,7 +121,11 @@ def _extract_changed_symbols(
                 qual = f"{module_stem}::{node.name}"
                 # Check if nested inside a class
                 for cls_node in ast.walk(tree):
-                    if isinstance(cls_node, ast.ClassDef) and node in ast.walk(cls_node) and node is not cls_node:
+                    if (
+                        isinstance(cls_node, ast.ClassDef)
+                        and node in ast.walk(cls_node)
+                        and node is not cls_node
+                    ):
                         qual = f"{module_stem}::{cls_node.name}.{node.name}"
                         sym_type = "method"
                         break
