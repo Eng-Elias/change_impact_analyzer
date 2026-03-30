@@ -15,12 +15,17 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from cia import __version__
+
+if TYPE_CHECKING:
+    from cia.analyzer.change_detector import ChangeSet
+    from cia.graph.dependency_graph import DependencyGraph
 
 console = Console()
 
@@ -33,9 +38,9 @@ def _build_project_graph(
     repo_path: Path,
     *,
     verbose: bool = False,
-) -> "DependencyGraph":
+) -> DependencyGraph:
     """Parse every ``.py`` file under *repo_path* and return a populated graph."""
-    from cia.graph.dependency_graph import DependencyGraph
+    from cia.graph.dependency_graph import DependencyGraph as DependencyGraph  # noqa: F811
     from cia.parser.python_parser import PythonParser
 
     parser = PythonParser()
@@ -62,7 +67,7 @@ def _build_project_graph(
 
 def _approximate_coverage(
     repo_path: Path,
-    graph: "DependencyGraph",
+    graph: DependencyGraph,
 ) -> dict[str, float]:
     """Build a rough coverage map from test-file imports.
 
@@ -82,7 +87,7 @@ def _approximate_coverage(
     return result
 
 def _extract_changed_symbols(
-    changeset: "ChangeSet",
+    changeset: ChangeSet,
     repo_path: Path,
 ) -> list[dict[str, str]]:
     """Parse changed ``.py`` files and return symbols whose lines overlap the diff.
@@ -107,25 +112,25 @@ def _extract_changed_symbols(
         changed_lines = set(change.added_lines)
         module_stem = change.file_path.stem
         for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if any(ln in changed_lines
-                       for ln in range(node.lineno, node.end_lineno + 1)):
-                    # Determine qualified name (ClassName.method or just func)
-                    sym_type = "function"
-                    qual = f"{module_stem}::{node.name}"
-                    # Check if nested inside a class
-                    for cls_node in ast.walk(tree):
-                        if isinstance(cls_node, ast.ClassDef):
-                            if node in ast.walk(cls_node) and node is not cls_node:
-                                qual = f"{module_stem}::{cls_node.name}.{node.name}"
-                                sym_type = "method"
-                                break
-                    symbols.append({
-                        "module": module_stem,
-                        "name": node.name,
-                        "qualified_name": qual,
-                        "symbol_type": sym_type,
-                    })
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and any(
+                ln in changed_lines
+                for ln in range(node.lineno, (node.end_lineno or node.lineno) + 1)
+            ):
+                # Determine qualified name (ClassName.method or just func)
+                sym_type = "function"
+                qual = f"{module_stem}::{node.name}"
+                # Check if nested inside a class
+                for cls_node in ast.walk(tree):
+                    if isinstance(cls_node, ast.ClassDef) and node in ast.walk(cls_node) and node is not cls_node:
+                        qual = f"{module_stem}::{cls_node.name}.{node.name}"
+                        sym_type = "method"
+                        break
+                symbols.append({
+                    "module": module_stem,
+                    "name": node.name,
+                    "qualified_name": qual,
+                    "symbol_type": sym_type,
+                })
     return symbols
 
 
@@ -190,7 +195,6 @@ def analyze(
     from cia.analyzer.change_detector import ChangeDetector
     from cia.analyzer.impact_analyzer import ImpactAnalyzer
     from cia.git.git_integration import GitIntegration
-    from cia.graph.dependency_graph import DependencyGraph
     from cia.report.html_reporter import HtmlReporter
     from cia.report.json_reporter import JsonReporter
     from cia.report.markdown_reporter import MarkdownReporter
@@ -412,10 +416,8 @@ def graph(
         )
 
 
-def _graph_to_text(dep_graph: "DependencyGraph") -> str:
+def _graph_to_text(dep_graph: DependencyGraph) -> str:
     """Render the dependency graph as a text tree."""
-    from cia.graph.dependency_graph import DependencyGraph
-
     lines: list[str] = []
     for module in sorted(dep_graph.get_all_modules()):
         deps = dep_graph.get_dependencies(module)
@@ -428,7 +430,7 @@ def _graph_to_text(dep_graph: "DependencyGraph") -> str:
     return "\n".join(lines)
 
 
-def _graph_to_dot(dep_graph: "DependencyGraph") -> str:
+def _graph_to_dot(dep_graph: DependencyGraph) -> str:
     """Render the dependency graph in Graphviz DOT format."""
     lines = ["digraph dependencies {", "  rankdir=LR;"]
     for module in sorted(dep_graph.get_all_modules()):
