@@ -148,7 +148,7 @@ def load_env_overrides() -> dict[str, Any]:
     for key, val in os.environ.items():
         if not key.startswith(prefix):
             continue
-        config_key = key[len(prefix):].lower().replace("_", ".")
+        config_key = key[len(prefix) :].lower().replace("_", ".")
         # Attempt numeric conversion
         if val.isdigit():
             overrides[config_key] = int(val)
@@ -159,7 +159,7 @@ def load_env_overrides() -> dict[str, Any]:
         else:
             overrides[config_key] = val
         # Also store the un-dotted version for simple keys
-        simple_key = key[len(prefix):].lower()
+        simple_key = key[len(prefix) :].lower()
         if "." not in simple_key and simple_key != config_key:
             pass  # only one form exists
         # Store short form (last segment) as well for convenience

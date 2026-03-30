@@ -234,7 +234,4 @@ class DependencyGraph:
 
     def to_dict(self) -> dict[str, list[str]]:
         """Export the graph as a simple adjacency dict."""
-        return {
-            node: list(self._graph.successors(node))
-            for node in self._graph.nodes
-        }
+        return {node: list(self._graph.successors(node)) for node in self._graph.nodes}

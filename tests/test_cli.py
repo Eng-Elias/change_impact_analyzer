@@ -126,10 +126,13 @@ class TestInitCommand:
         assert "already exists" in result.output
         assert rc.read_text(encoding="utf-8") == "existing\n"
 
-    def test_ciarc_content_is_valid_toml(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_ciarc_content_is_valid_toml(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         runner.invoke(main, ["init", str(tmp_path)])
         rc = tmp_path / ".ciarc"
         import tomllib
+
         with open(rc, "rb") as f:
             data = tomllib.load(f)
         assert "analysis" in data
@@ -173,13 +176,17 @@ class TestConfigCommand:
         rc = tmp_path / ".ciarc"
         assert rc.exists()
 
-    def test_set_creates_ciarc_if_missing(self, runner: CliRunner, tmp_path: Path) -> None:
+    def test_set_creates_ciarc_if_missing(
+        self, runner: CliRunner, tmp_path: Path
+    ) -> None:
         runner.invoke(main, ["config", "--set", "format=markdown", str(tmp_path)])
         rc = tmp_path / ".ciarc"
         assert rc.exists()
 
     def test_set_invalid_format(self, runner: CliRunner, tmp_path: Path) -> None:
-        result = runner.invoke(main, ["config", "--set", "no_equals_sign", str(tmp_path)])
+        result = runner.invoke(
+            main, ["config", "--set", "no_equals_sign", str(tmp_path)]
+        )
         assert "key=value" in result.output
 
     def test_edit_no_ciarc(self, runner: CliRunner, tmp_path: Path) -> None:
@@ -197,8 +204,10 @@ class TestConfigCommand:
     def test_edit_with_editor_env(self, runner: CliRunner, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
         rc.write_text("x = 1\n", encoding="utf-8")
-        with patch("cia.cli.subprocess.run") as mock_run, \
-             patch.dict(os.environ, {"EDITOR": "myeditor"}, clear=False):
+        with (
+            patch("cia.cli.subprocess.run") as mock_run,
+            patch.dict(os.environ, {"EDITOR": "myeditor"}, clear=False),
+        ):
             mock_run.return_value = None
             runner.invoke(main, ["config", "--edit", str(tmp_path)])
             args = mock_run.call_args[0][0]
@@ -207,7 +216,9 @@ class TestConfigCommand:
     def test_edit_editor_error(self, runner: CliRunner, tmp_path: Path) -> None:
         rc = tmp_path / ".ciarc"
         rc.write_text("x = 1\n", encoding="utf-8")
-        with patch("cia.cli.subprocess.run", side_effect=FileNotFoundError("no editor")):
+        with patch(
+            "cia.cli.subprocess.run", side_effect=FileNotFoundError("no editor")
+        ):
             result = runner.invoke(main, ["config", "--edit", str(tmp_path)])
             assert "Error launching editor" in result.output
 
@@ -255,9 +266,7 @@ class TestAnalyzeCommand:
 
     def test_output_file_json(self, runner: CliRunner, git_repo: Path) -> None:
         out = git_repo / "r.json"
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "-o", str(out)]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "-o", str(out)])
         assert result.exit_code == 0
         assert out.exists()
         assert "schema_version" in out.read_text(encoding="utf-8")
@@ -307,15 +316,11 @@ class TestAnalyzeCommand:
         assert "Risk Breakdown" in result.output
 
     def test_threshold_pass(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--threshold", "100"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--threshold", "100"])
         assert result.exit_code == 0
 
     def test_test_only_flag(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--test-only"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--test-only"])
         assert result.exit_code == 0
         # Should show test info, not a full JSON report
         assert "schema_version" not in result.output
@@ -342,9 +347,7 @@ class TestAnalyzeErrorHandling:
         (git_repo / "hello.py").write_text("x = 2\ny = 3\n" * 10, encoding="utf-8")
         repo = Repo(git_repo)
         repo.index.add(["hello.py"])
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--threshold", "0"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--threshold", "0"])
         # Risk score should exceed 0
         assert "FAIL" in result.output or result.exit_code != 0
 
@@ -353,9 +356,7 @@ class TestAnalyzeErrorHandling:
         (git_repo / "hello.py").write_text("x = 2\ny = 3\n" * 50, encoding="utf-8")
         repo = Repo(git_repo)
         repo.index.add(["hello.py"])
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--explain"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--explain"])
         assert result.exit_code == 0
         assert "Risk Breakdown" in result.output
 
@@ -391,9 +392,7 @@ class TestInstallHookCommand:
         hooks_dir.mkdir(parents=True, exist_ok=True)
         hook = hooks_dir / "pre-commit"
         hook.write_text("#!/bin/sh\necho other\n", encoding="utf-8")
-        result = runner.invoke(
-            main, ["install-hook", str(git_repo), "--force"]
-        )
+        result = runner.invoke(main, ["install-hook", str(git_repo), "--force"])
         assert result.exit_code == 0
         assert "installed" in result.output.lower()
 
@@ -414,18 +413,22 @@ class TestInstallHookCommand:
 
     def test_global_flag(self, runner: CliRunner, git_repo: Path) -> None:
         with patch("cia.cli.subprocess.run") as mock_run:
-            mock_run.return_value = type("R", (), {
-                "stdout": "", "stderr": "", "returncode": 0,
-            })()
+            mock_run.return_value = type(
+                "R",
+                (),
+                {
+                    "stdout": "",
+                    "stderr": "",
+                    "returncode": 0,
+                },
+            )()
             result = runner.invoke(main, ["install-hook", str(git_repo), "--global"])
             assert result.exit_code == 0
             assert "globally" in result.output
 
     def test_global_flag_error(self, runner: CliRunner, git_repo: Path) -> None:
         with patch("cia.cli.subprocess.run", side_effect=OSError("git not found")):
-            result = runner.invoke(
-                main, ["install-hook", str(git_repo), "--global"]
-            )
+            result = runner.invoke(main, ["install-hook", str(git_repo), "--global"])
             assert "Error" in result.output
 
 
@@ -475,9 +478,7 @@ class TestTestCommand:
         assert "Error" in result.output
 
     def test_affected_only_no_affected(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["test", str(git_repo), "--affected-only"]
-        )
+        result = runner.invoke(main, ["test", str(git_repo), "--affected-only"])
         assert result.exit_code == 0
         # No staged changes → no affected tests
         assert "No tests affected" in result.output
@@ -496,31 +497,25 @@ class TestTestCommand:
         # Now modify hello.py and stage it
         (git_repo / "hello.py").write_text("x = 2\n", encoding="utf-8")
         repo.index.add(["hello.py"])
-        result = runner.invoke(
-            main, ["test", str(git_repo), "--affected-only"]
-        )
+        result = runner.invoke(main, ["test", str(git_repo), "--affected-only"])
         assert result.exit_code == 0
 
     def test_suggest(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["test", str(git_repo), "--suggest"]
-        )
+        result = runner.invoke(main, ["test", str(git_repo), "--suggest"])
         assert result.exit_code == 0
 
-    def test_suggest_with_staged_change(self, runner: CliRunner, git_repo: Path) -> None:
+    def test_suggest_with_staged_change(
+        self, runner: CliRunner, git_repo: Path
+    ) -> None:
         (git_repo / "hello.py").write_text("x = 2\ny = 3\n", encoding="utf-8")
         repo = Repo(git_repo)
         repo.index.add(["hello.py"])
-        result = runner.invoke(
-            main, ["test", str(git_repo), "--suggest"]
-        )
+        result = runner.invoke(main, ["test", str(git_repo), "--suggest"])
         assert result.exit_code == 0
 
     def test_unstaged(self, runner: CliRunner, git_repo: Path) -> None:
         (git_repo / "hello.py").write_text("x = 2\n", encoding="utf-8")
-        result = runner.invoke(
-            main, ["test", str(git_repo), "--unstaged"]
-        )
+        result = runner.invoke(main, ["test", str(git_repo), "--unstaged"])
         assert result.exit_code == 0
 
     def test_commit_range(self, runner: CliRunner, git_repo: Path) -> None:
@@ -550,9 +545,7 @@ class TestTestCommand:
         repo.index.commit("Add test")
         (git_repo / "hello.py").write_text("x = 2\n", encoding="utf-8")
         repo.index.add(["hello.py"])
-        result = runner.invoke(
-            main, ["-v", "test", str(git_repo), "--affected-only"]
-        )
+        result = runner.invoke(main, ["-v", "test", str(git_repo), "--affected-only"])
         assert result.exit_code == 0
 
 

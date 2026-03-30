@@ -114,9 +114,7 @@ class ImpactAnalyzer:
             callers = self._call_graph.get_callers(symbol.qualified_name)
             result.directly_affected.extend(callers)
 
-            transitive = self._call_graph.get_transitive_callers(
-                symbol.qualified_name
-            )
+            transitive = self._call_graph.get_transitive_callers(symbol.qualified_name)
             result.transitively_affected.extend(
                 t for t in transitive if t not in callers
             )

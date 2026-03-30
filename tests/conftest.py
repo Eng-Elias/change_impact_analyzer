@@ -28,7 +28,7 @@ def sample_project_dir(tmp_path: Path) -> Path:
     )
 
     (src / "models.py").write_text(
-        'from sample.utils import compute\n\nclass Model:\n    def predict(self, x):\n        return compute(x)\n',
+        "from sample.utils import compute\n\nclass Model:\n    def predict(self, x):\n        return compute(x)\n",
         encoding="utf-8",
     )
 

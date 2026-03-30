@@ -37,7 +37,14 @@ class TestRiskLevel:
 
 class TestRiskFactorType:
     def test_all_types(self) -> None:
-        expected = {"complexity", "churn", "dependents", "test_coverage", "change_size", "critical_path"}
+        expected = {
+            "complexity",
+            "churn",
+            "dependents",
+            "test_coverage",
+            "change_size",
+            "critical_path",
+        }
         actual = {ft.value for ft in RiskFactorType}
         assert actual == expected
 
@@ -53,22 +60,31 @@ class TestRiskFactorType:
 class TestRiskFactor:
     def test_weighted_score(self) -> None:
         rf = RiskFactor(
-            name="test", factor_type=RiskFactorType.COMPLEXITY,
-            description="desc", weight=0.5, value=60.0,
+            name="test",
+            factor_type=RiskFactorType.COMPLEXITY,
+            description="desc",
+            weight=0.5,
+            value=60.0,
         )
         assert rf.weighted_score == pytest.approx(30.0)
 
     def test_zero_value(self) -> None:
         rf = RiskFactor(
-            name="test", factor_type=RiskFactorType.CHURN,
-            description="desc", weight=0.25, value=0.0,
+            name="test",
+            factor_type=RiskFactorType.CHURN,
+            description="desc",
+            weight=0.25,
+            value=0.0,
         )
         assert rf.weighted_score == 0.0
 
     def test_full_value(self) -> None:
         rf = RiskFactor(
-            name="test", factor_type=RiskFactorType.CHANGE_SIZE,
-            description="desc", weight=1.0, value=100.0,
+            name="test",
+            factor_type=RiskFactorType.CHANGE_SIZE,
+            description="desc",
+            weight=1.0,
+            value=100.0,
         )
         assert rf.weighted_score == pytest.approx(100.0)
 
@@ -108,17 +124,20 @@ class TestRiskScore:
 
 
 class TestScoreToLevel:
-    @pytest.mark.parametrize("score,expected", [
-        (0.0, RiskLevel.LOW),
-        (10.0, RiskLevel.LOW),
-        (25.0, RiskLevel.LOW),
-        (26.0, RiskLevel.MEDIUM),
-        (50.0, RiskLevel.MEDIUM),
-        (51.0, RiskLevel.HIGH),
-        (75.0, RiskLevel.HIGH),
-        (76.0, RiskLevel.CRITICAL),
-        (100.0, RiskLevel.CRITICAL),
-    ])
+    @pytest.mark.parametrize(
+        "score,expected",
+        [
+            (0.0, RiskLevel.LOW),
+            (10.0, RiskLevel.LOW),
+            (25.0, RiskLevel.LOW),
+            (26.0, RiskLevel.MEDIUM),
+            (50.0, RiskLevel.MEDIUM),
+            (51.0, RiskLevel.HIGH),
+            (75.0, RiskLevel.HIGH),
+            (76.0, RiskLevel.CRITICAL),
+            (100.0, RiskLevel.CRITICAL),
+        ],
+    )
     def test_boundaries(self, score: float, expected: RiskLevel) -> None:
         assert score_to_level(score) == expected
 

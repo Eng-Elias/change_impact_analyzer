@@ -105,9 +105,7 @@ class HookManager:
         Returns the path to the installed hook file.
         """
         if not self._hooks_dir.exists():
-            raise FileNotFoundError(
-                f"Git hooks directory not found: {self._hooks_dir}"
-            )
+            raise FileNotFoundError(f"Git hooks directory not found: {self._hooks_dir}")
 
         content = _HOOK_TEMPLATE.format(
             block_threshold=block_threshold,

@@ -57,7 +57,10 @@ class ChangeDetector:
     # ------------------------------------------------------------------
 
     def detect_changes(
-        self, git_integration: GitIntegration, *, staged: bool = True,
+        self,
+        git_integration: GitIntegration,
+        *,
+        staged: bool = True,
     ) -> ChangeSet:
         """Detect changes via *git_integration* and return a *ChangeSet*.
 

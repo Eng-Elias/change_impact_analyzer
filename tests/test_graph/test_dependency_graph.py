@@ -57,13 +57,10 @@ def cyclic_graph() -> DependencyGraph:
     return g
 
 
-def _make_parsed_module(
-    name: str, import_modules: list[str]
-) -> ParsedModule:
+def _make_parsed_module(name: str, import_modules: list[str]) -> ParsedModule:
     """Helper to create a ParsedModule with given imports."""
     imports = [
-        Import(module=mod, line_number=i + 1)
-        for i, mod in enumerate(import_modules)
+        Import(module=mod, line_number=i + 1) for i, mod in enumerate(import_modules)
     ]
     return ParsedModule(
         file_path=Path(f"{name}.py"),
@@ -99,7 +96,9 @@ class TestGraphConstruction:
         assert edge_data["dependency_type"] == "import"
         assert edge_data["line_number"] == 5
 
-    def test_add_dependency_auto_creates_nodes(self, empty_graph: DependencyGraph) -> None:
+    def test_add_dependency_auto_creates_nodes(
+        self, empty_graph: DependencyGraph
+    ) -> None:
         empty_graph.add_dependency("x", "y")
         assert empty_graph.module_count == 2
         assert set(empty_graph.get_all_modules()) == {"x", "y"}
@@ -196,7 +195,9 @@ class TestQueries:
 class TestTransitive:
     """Test transitive dependency / dependent calculations."""
 
-    def test_transitive_dependencies_linear(self, linear_graph: DependencyGraph) -> None:
+    def test_transitive_dependencies_linear(
+        self, linear_graph: DependencyGraph
+    ) -> None:
         assert linear_graph.get_transitive_dependencies("A") == {"B", "C"}
 
     def test_transitive_dependencies_leaf(self, linear_graph: DependencyGraph) -> None:
@@ -208,10 +209,14 @@ class TestTransitive:
     def test_transitive_dependents_root(self, linear_graph: DependencyGraph) -> None:
         assert linear_graph.get_transitive_dependents("A") == set()
 
-    def test_transitive_dependencies_diamond(self, diamond_graph: DependencyGraph) -> None:
+    def test_transitive_dependencies_diamond(
+        self, diamond_graph: DependencyGraph
+    ) -> None:
         assert diamond_graph.get_transitive_dependencies("A") == {"B", "C", "D"}
 
-    def test_transitive_dependents_diamond(self, diamond_graph: DependencyGraph) -> None:
+    def test_transitive_dependents_diamond(
+        self, diamond_graph: DependencyGraph
+    ) -> None:
         assert diamond_graph.get_transitive_dependents("D") == {"A", "B", "C"}
 
     def test_transitive_missing_node(self, linear_graph: DependencyGraph) -> None:
@@ -282,8 +287,12 @@ class TestSerialization:
     def test_roundtrip_diamond(self, diamond_graph: DependencyGraph) -> None:
         j = diamond_graph.to_json()
         restored = DependencyGraph.from_json(j)
-        assert set(restored.get_dependencies("A")) == set(diamond_graph.get_dependencies("A"))
-        assert set(restored.get_dependents("D")) == set(diamond_graph.get_dependents("D"))
+        assert set(restored.get_dependencies("A")) == set(
+            diamond_graph.get_dependencies("A")
+        )
+        assert set(restored.get_dependents("D")) == set(
+            diamond_graph.get_dependents("D")
+        )
 
     def test_roundtrip_preserves_edge_attrs(self) -> None:
         g = DependencyGraph()

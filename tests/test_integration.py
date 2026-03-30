@@ -225,9 +225,7 @@ class TestFullPipeline:
         _stage_change(repo)
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["analyze", str(repo), "--threshold", "99"]
-        )
+        result = runner.invoke(main, ["analyze", str(repo), "--threshold", "99"])
         assert result.exit_code == 0
 
     def test_analyze_with_explain(self, tmp_path: Path) -> None:
@@ -236,9 +234,7 @@ class TestFullPipeline:
         _stage_change(repo)
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["analyze", str(repo), "--explain"]
-        )
+        result = runner.invoke(main, ["analyze", str(repo), "--explain"])
         assert result.exit_code == 0
         assert "Risk Breakdown" in result.output or "/100" in result.output
 
@@ -248,9 +244,7 @@ class TestFullPipeline:
         _stage_change(repo)
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["analyze", str(repo), "--test-only"]
-        )
+        result = runner.invoke(main, ["analyze", str(repo), "--test-only"])
         assert result.exit_code == 0
         # Should not contain full report markers
         assert "schema_version" not in result.output
@@ -274,13 +268,11 @@ class TestFullPipeline:
         # Modify without staging
         utils = repo / "mylib" / "utils.py"
         content = utils.read_text(encoding="utf-8")
-        content += '\n# unstaged change\n'
+        content += "\n# unstaged change\n"
         utils.write_text(content, encoding="utf-8")
 
         runner = CliRunner()
-        result = runner.invoke(
-            main, ["analyze", str(repo), "--unstaged"]
-        )
+        result = runner.invoke(main, ["analyze", str(repo), "--unstaged"])
         assert result.exit_code == 0
 
     def test_analyze_no_changes(self, tmp_path: Path) -> None:
@@ -324,14 +316,10 @@ class TestCLICommands:
         runner = CliRunner()
         runner.invoke(main, ["init", str(tmp_path)])
         # Set a value
-        result = runner.invoke(
-            main, ["config", "--set", "threshold=80", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["config", "--set", "threshold=80", str(tmp_path)])
         assert result.exit_code == 0
         # Get it back
-        result = runner.invoke(
-            main, ["config", "--get", "threshold", str(tmp_path)]
-        )
+        result = runner.invoke(main, ["config", "--get", "threshold", str(tmp_path)])
         assert result.exit_code == 0
         assert "80" in result.output
 
@@ -339,9 +327,7 @@ class TestCLICommands:
         repo = _init_repo(tmp_path)
         runner = CliRunner()
 
-        result = runner.invoke(
-            main, ["install-hook", str(repo), "--block-on", "high"]
-        )
+        result = runner.invoke(main, ["install-hook", str(repo), "--block-on", "high"])
         assert result.exit_code == 0
         assert "installed" in result.output.lower()
 

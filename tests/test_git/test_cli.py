@@ -27,7 +27,7 @@ def git_repo(tmp_path: Path) -> Path:
     repo.config_writer().set_value("user", "name", "Test").release()
     repo.config_writer().set_value("user", "email", "test@test.com").release()
     hello = tmp_path / "hello.py"
-    hello.write_text('x = 1\n', encoding="utf-8")
+    hello.write_text("x = 1\n", encoding="utf-8")
     repo.index.add(["hello.py"])
     repo.index.commit("Initial commit")
     return tmp_path
@@ -80,7 +80,9 @@ class TestAnalyze:
         assert result.exit_code == 0
         assert "schema_version" in result.output
 
-    def test_analyze_invalid_commit_range(self, runner: CliRunner, git_repo: Path) -> None:
+    def test_analyze_invalid_commit_range(
+        self, runner: CliRunner, git_repo: Path
+    ) -> None:
         result = runner.invoke(
             main, ["analyze", str(git_repo), "--commit-range", "BADRANGE"]
         )
@@ -115,7 +117,9 @@ class TestHookCommands:
         assert result.exit_code == 0
         assert "installed" in result.output.lower()
 
-    def test_install_hook_with_block_on(self, runner: CliRunner, git_repo: Path) -> None:
+    def test_install_hook_with_block_on(
+        self, runner: CliRunner, git_repo: Path
+    ) -> None:
         hooks_dir = git_repo / ".git" / "hooks"
         hooks_dir.mkdir(parents=True, exist_ok=True)
         result = runner.invoke(
@@ -128,12 +132,16 @@ class TestHookCommands:
         result = runner.invoke(main, ["install-hook", str(tmp_path)])
         assert "Error" in result.output or result.exit_code != 0
 
-    def test_uninstall_hook_not_installed(self, runner: CliRunner, git_repo: Path) -> None:
+    def test_uninstall_hook_not_installed(
+        self, runner: CliRunner, git_repo: Path
+    ) -> None:
         result = runner.invoke(main, ["uninstall-hook", str(git_repo)])
         assert result.exit_code == 0
         assert "no cia hook" in result.output.lower()
 
-    def test_uninstall_hook_after_install(self, runner: CliRunner, git_repo: Path) -> None:
+    def test_uninstall_hook_after_install(
+        self, runner: CliRunner, git_repo: Path
+    ) -> None:
         hooks_dir = git_repo / ".git" / "hooks"
         hooks_dir.mkdir(parents=True, exist_ok=True)
         runner.invoke(main, ["install-hook", str(git_repo)])
@@ -197,16 +205,12 @@ class TestAnalyzeFormats:
         assert "# Change Impact" in out.read_text(encoding="utf-8")
 
     def test_explain_flag(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--explain"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--explain"])
         assert result.exit_code == 0
         assert "Risk Breakdown" in result.output
 
     def test_threshold_pass(self, runner: CliRunner, git_repo: Path) -> None:
-        result = runner.invoke(
-            main, ["analyze", str(git_repo), "--threshold", "100"]
-        )
+        result = runner.invoke(main, ["analyze", str(git_repo), "--threshold", "100"])
         assert result.exit_code == 0
 
 

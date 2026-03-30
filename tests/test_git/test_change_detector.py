@@ -118,7 +118,9 @@ class TestParseDiff:
         assert changes[0].change_type == "modified"
         assert len(changes[0].added_lines) > 0
 
-    def test_multi_file_diff(self, detector: ChangeDetector, multi_file_diff: str) -> None:
+    def test_multi_file_diff(
+        self, detector: ChangeDetector, multi_file_diff: str
+    ) -> None:
         changes = detector.parse_diff(multi_file_diff)
         assert len(changes) == 2
         paths = {c.file_path for c in changes}
@@ -129,12 +131,16 @@ class TestParseDiff:
         assert len(changes) == 1
         assert changes[0].change_type == "added"
 
-    def test_deleted_file(self, detector: ChangeDetector, deleted_file_diff: str) -> None:
+    def test_deleted_file(
+        self, detector: ChangeDetector, deleted_file_diff: str
+    ) -> None:
         changes = detector.parse_diff(deleted_file_diff)
         assert len(changes) == 1
         assert changes[0].change_type == "deleted"
 
-    def test_renamed_file(self, detector: ChangeDetector, renamed_file_diff: str) -> None:
+    def test_renamed_file(
+        self, detector: ChangeDetector, renamed_file_diff: str
+    ) -> None:
         changes = detector.parse_diff(renamed_file_diff)
         assert len(changes) == 1
         assert changes[0].change_type == "renamed"
@@ -145,7 +151,9 @@ class TestParseDiff:
         changes = detector.parse_diff("")
         assert changes == []
 
-    def test_added_line_numbers(self, detector: ChangeDetector, simple_diff: str) -> None:
+    def test_added_line_numbers(
+        self, detector: ChangeDetector, simple_diff: str
+    ) -> None:
         changes = detector.parse_diff(simple_diff)
         assert 2 in changes[0].added_lines or 3 in changes[0].added_lines
 
@@ -161,7 +169,9 @@ class TestCategorize:
             Change(file_path=Path("a.py"), change_type="added"),
             Change(file_path=Path("b.py"), change_type="modified"),
             Change(file_path=Path("c.py"), change_type="deleted"),
-            Change(file_path=Path("d.py"), change_type="renamed", old_path=Path("old_d.py")),
+            Change(
+                file_path=Path("d.py"), change_type="renamed", old_path=Path("old_d.py")
+            ),
         ]
         added, modified, deleted, renamed = detector.categorize_changes(changes)
         assert added == [Path("a.py")]
@@ -181,7 +191,9 @@ class TestCategorize:
 
 
 class TestGetChangedLines:
-    def test_changed_lines_simple(self, detector: ChangeDetector, simple_diff: str) -> None:
+    def test_changed_lines_simple(
+        self, detector: ChangeDetector, simple_diff: str
+    ) -> None:
         ranges = detector.get_changed_lines(simple_diff)
         assert len(ranges) >= 1
         assert all(isinstance(r, tuple) and len(r) == 2 for r in ranges)
@@ -230,7 +242,9 @@ class TestDetectChanges:
         assert len(cs.changes) == 1
         mock_git.get_unstaged_diff.assert_called_once()
 
-    def test_detect_changes_for_range(self, detector: ChangeDetector, simple_diff: str) -> None:
+    def test_detect_changes_for_range(
+        self, detector: ChangeDetector, simple_diff: str
+    ) -> None:
         mock_git = MagicMock()
         mock_git.get_diff_between.return_value = simple_diff
         cs = detector.detect_changes_for_range(mock_git, "HEAD~1..HEAD")

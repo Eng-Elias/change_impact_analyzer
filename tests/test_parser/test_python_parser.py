@@ -45,14 +45,18 @@ class TestParseSimpleFiles:
         assert result.variables == []
 
     def test_parse_simple_function(self, parser: PythonParser, tmp_path: Path) -> None:
-        f = _write(tmp_path, "simple.py", "def greet(name):\n    return f'Hello {name}'\n")
+        f = _write(
+            tmp_path, "simple.py", "def greet(name):\n    return f'Hello {name}'\n"
+        )
         result = parser.parse_file(f)
         assert len(result.functions) == 1
         assert result.functions[0].name == "greet"
         assert result.functions[0].qualified_name == "simple.greet"
         assert "name" in result.functions[0].args
 
-    def test_parse_file_preserves_file_path(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_parse_file_preserves_file_path(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         f = _write(tmp_path, "mod.py", "x = 1\n")
         result = parser.parse_file(f)
         assert result.file_path == f
@@ -62,7 +66,9 @@ class TestParseSimpleFiles:
         result = parser.parse_file(f)
         assert result.ast is not None
 
-    def test_parse_module_name_from_stem(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_parse_module_name_from_stem(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         f = _write(tmp_path, "my_module.py", "pass\n")
         result = parser.parse_file(f)
         assert result.module_name == "my_module"
@@ -95,7 +101,9 @@ class TestImports:
         assert imp.is_relative is False
 
     def test_relative_import(self, parser: PythonParser, tmp_path: Path) -> None:
-        f = _write(tmp_path, "rel.py", "from . import sibling\nfrom ..pkg import thing\n")
+        f = _write(
+            tmp_path, "rel.py", "from . import sibling\nfrom ..pkg import thing\n"
+        )
         result = parser.parse_file(f)
         assert len(result.imports) == 2
         assert result.imports[0].is_relative is True
@@ -155,14 +163,18 @@ class TestFunctions:
         assert result.functions[0].line_start == 1
         assert result.functions[1].line_start == 4
 
-    def test_function_with_decorator(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_function_with_decorator(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         src = "@staticmethod\ndef util():\n    pass\n"
         f = _write(tmp_path, "dec.py", src)
         result = parser.parse_file(f)
         fn = result.functions[0]
         assert "staticmethod" in fn.decorators
 
-    def test_function_with_parameterized_decorator(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_function_with_parameterized_decorator(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         src = "@app.route('/home')\ndef index():\n    pass\n"
         f = _write(tmp_path, "dec2.py", src)
         result = parser.parse_file(f)
@@ -238,7 +250,9 @@ class TestClasses:
         cls = result.classes[0]
         assert "dataclass" in cls.decorators
 
-    def test_class_dependencies_include_bases(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_class_dependencies_include_bases(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         src = "class A(B, C):\n    pass\n"
         f = _write(tmp_path, "multi_base.py", src)
         result = parser.parse_file(f)
@@ -300,7 +314,9 @@ class TestVariables:
         assert result.variables[0].name == "x"
         assert result.variables[0].value_type == "annotated"
 
-    def test_variables_appear_in_symbols(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_variables_appear_in_symbols(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         f = _write(tmp_path, "var.py", "DEBUG = True\n")
         result = parser.parse_file(f)
         var_symbols = [s for s in result.symbols if s.symbol_type == "variable"]
@@ -321,7 +337,9 @@ class TestDependencies:
         result = parser.parse_file(f)
         dep_types = {d.dependency_type for d in result.dependencies}
         assert "import" in dep_types
-        targets = [d.target for d in result.dependencies if d.dependency_type == "import"]
+        targets = [
+            d.target for d in result.dependencies if d.dependency_type == "import"
+        ]
         assert "os" in targets
         assert "sys" in targets
 
@@ -337,7 +355,9 @@ class TestDependencies:
         inh_deps = [d for d in result.dependencies if d.dependency_type == "inherit"]
         assert any(d.target == "Base" for d in inh_deps)
 
-    def test_get_dependencies_accessor(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_get_dependencies_accessor(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         f = _write(tmp_path, "acc.py", "import os\n")
         result = parser.parse_file(f)
         assert parser.get_dependencies(result) is result.dependencies
@@ -351,7 +371,9 @@ class TestDependencies:
 class TestSymbols:
     """Test the flat symbols list."""
 
-    def test_symbols_include_all_types(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_symbols_include_all_types(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         src = (
             "VAR = 1\n"
             "def func(): pass\n"
@@ -409,7 +431,9 @@ class TestErrorHandling:
 class TestCaching:
     """Test the parse result caching mechanism."""
 
-    def test_cache_returns_same_object(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_cache_returns_same_object(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         f = _write(tmp_path, "cached.py", "x = 1\n")
         first = parser.parse_file(f)
         second = parser.parse_file(f)
@@ -457,7 +481,9 @@ class TestParseDirectory:
         names = {r.module_name for r in results}
         assert names == {"a", "b", "c"}
 
-    def test_parse_directory_skips_non_python(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_parse_directory_skips_non_python(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         _write(tmp_path, "mod.py", "pass\n")
         (tmp_path / "data.txt").write_text("not python", encoding="utf-8")
         results = parser.parse_directory(tmp_path)
@@ -524,7 +550,9 @@ class TestComplexScenarios:
         assert "import" in dep_types
         assert "call" in dep_types
 
-    def test_decorated_class_and_method(self, parser: PythonParser, tmp_path: Path) -> None:
+    def test_decorated_class_and_method(
+        self, parser: PythonParser, tmp_path: Path
+    ) -> None:
         src = (
             "from functools import lru_cache\n"
             "\n"

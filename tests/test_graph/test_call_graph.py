@@ -86,8 +86,12 @@ class TestConstruction:
 
     def test_add_function_metadata(self, empty_cg: CallGraph) -> None:
         empty_cg.add_function(
-            "mod", "bar", line_start=10, line_end=20,
-            file_path="mod.py", symbol_type="method",
+            "mod",
+            "bar",
+            line_start=10,
+            line_end=20,
+            file_path="mod.py",
+            symbol_type="method",
         )
         attrs = empty_cg.graph.nodes["mod.bar"]
         assert attrs["module"] == "mod"
@@ -126,12 +130,18 @@ class TestBuildFromModules:
 
     def test_build_simple(self) -> None:
         modules = [
-            _make_module_with_symbols("app", [
-                ("main", "function", ["helper"]),
-            ]),
-            _make_module_with_symbols("utils", [
-                ("helper", "function", []),
-            ]),
+            _make_module_with_symbols(
+                "app",
+                [
+                    ("main", "function", ["helper"]),
+                ],
+            ),
+            _make_module_with_symbols(
+                "utils",
+                [
+                    ("helper", "function", []),
+                ],
+            ),
         ]
         cg = CallGraph()
         cg.build_from_modules(modules)
@@ -141,10 +151,13 @@ class TestBuildFromModules:
 
     def test_build_skips_variables(self) -> None:
         modules = [
-            _make_module_with_symbols("conf", [
-                ("DEBUG", "variable", []),
-                ("setup", "function", []),
-            ]),
+            _make_module_with_symbols(
+                "conf",
+                [
+                    ("DEBUG", "variable", []),
+                    ("setup", "function", []),
+                ],
+            ),
         ]
         cg = CallGraph()
         cg.build_from_modules(modules)
@@ -153,11 +166,14 @@ class TestBuildFromModules:
 
     def test_build_methods(self) -> None:
         modules = [
-            _make_module_with_symbols("svc", [
-                ("Service", "class", []),
-                ("run", "method", ["helper"]),
-                ("helper", "function", []),
-            ]),
+            _make_module_with_symbols(
+                "svc",
+                [
+                    ("Service", "class", []),
+                    ("run", "method", ["helper"]),
+                    ("helper", "function", []),
+                ],
+            ),
         ]
         cg = CallGraph()
         cg.build_from_modules(modules)

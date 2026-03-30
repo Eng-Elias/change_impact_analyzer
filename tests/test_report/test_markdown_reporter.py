@@ -206,7 +206,9 @@ class TestMarkdownActionItems:
 
 
 class TestMarkdownWrite:
-    def test_write_creates_file(self, reporter: MarkdownReporter, tmp_path: Path) -> None:
+    def test_write_creates_file(
+        self, reporter: MarkdownReporter, tmp_path: Path
+    ) -> None:
         out = tmp_path / "report.md"
         result = reporter.write(_report(), out)
         assert result == out

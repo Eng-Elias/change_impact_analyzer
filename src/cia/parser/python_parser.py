@@ -151,9 +151,7 @@ class PythonParser(BaseParser):
     # Function extraction
     # ------------------------------------------------------------------
 
-    def _extract_functions(
-        self, tree: nodes.Module, file_path: Path
-    ) -> list[Function]:
+    def _extract_functions(self, tree: nodes.Module, file_path: Path) -> list[Function]:
         """Extract top-level function definitions."""
         functions: list[Function] = []
         for node in tree.body:
@@ -215,9 +213,7 @@ class PythonParser(BaseParser):
     # Variable extraction
     # ------------------------------------------------------------------
 
-    def _extract_variables(
-        self, tree: nodes.Module, file_path: Path
-    ) -> list[Variable]:
+    def _extract_variables(self, tree: nodes.Module, file_path: Path) -> list[Variable]:
         """Extract module-level variable assignments."""
         variables: list[Variable] = []
         for node in tree.body:

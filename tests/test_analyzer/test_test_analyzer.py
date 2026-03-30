@@ -29,7 +29,9 @@ def project_dir(tmp_path: Path) -> Path:
     src.mkdir()
     (src / "utils.py").write_text("def helper(): pass\n", encoding="utf-8")
     (src / "models.py").write_text("class Model: pass\n", encoding="utf-8")
-    (src / "core.py").write_text("import utils\ndef run(): utils.helper()\n", encoding="utf-8")
+    (src / "core.py").write_text(
+        "import utils\ndef run(): utils.helper()\n", encoding="utf-8"
+    )
 
     # Test files
     tests = tmp_path / "tests"
@@ -56,7 +58,9 @@ def project_dir(tmp_path: Path) -> Path:
 
 
 @pytest.fixture
-def mapping_fixture(project_dir: Path, analyzer: TestAnalyzer) -> dict[Path, CodeTestMapping]:
+def mapping_fixture(
+    project_dir: Path, analyzer: TestAnalyzer
+) -> dict[Path, CodeTestMapping]:
     return analyzer.build_test_mapping(project_dir)
 
 
@@ -73,7 +77,9 @@ class TestDiscoverTests:
         assert "test_models.py" in names
         assert "core_test.py" in names
 
-    def test_ignores_non_test_files(self, analyzer: TestAnalyzer, project_dir: Path) -> None:
+    def test_ignores_non_test_files(
+        self, analyzer: TestAnalyzer, project_dir: Path
+    ) -> None:
         tests = analyzer.discover_tests(project_dir)
         names = {t.name for t in tests}
         assert "utils.py" not in names
@@ -123,7 +129,9 @@ class TestMapTestsToCode:
         mapping = analyzer.map_tests_to_code(test_file)
         assert "utils" in mapping.covered_modules
 
-    def test_naming_convention_suffix(self, analyzer: TestAnalyzer, project_dir: Path) -> None:
+    def test_naming_convention_suffix(
+        self, analyzer: TestAnalyzer, project_dir: Path
+    ) -> None:
         test_file = project_dir / "tests" / "core_test.py"
         mapping = analyzer.map_tests_to_code(test_file)
         assert "core" in mapping.covered_modules
@@ -163,7 +171,9 @@ class TestMapTestsToCode:
 
 
 class TestBuildTestMapping:
-    def test_builds_for_all_tests(self, mapping_fixture: dict, project_dir: Path) -> None:
+    def test_builds_for_all_tests(
+        self, mapping_fixture: dict, project_dir: Path
+    ) -> None:
         names = {p.name for p in mapping_fixture}
         assert "test_utils.py" in names
         assert "test_models.py" in names
@@ -185,7 +195,9 @@ class TestPredictAffectedTests:
         names = {t.name for t in affected}
         assert "test_utils.py" in names
 
-    def test_multiple_modules(self, analyzer: TestAnalyzer, mapping_fixture: dict) -> None:
+    def test_multiple_modules(
+        self, analyzer: TestAnalyzer, mapping_fixture: dict
+    ) -> None:
         affected = analyzer.predict_affected_tests(["utils", "models"], mapping_fixture)
         names = {t.name for t in affected}
         assert "test_utils.py" in names
@@ -195,31 +207,39 @@ class TestPredictAffectedTests:
         affected = analyzer.predict_affected_tests(["nonexistent"], mapping_fixture)
         assert affected == []
 
-    def test_empty_entities(self, analyzer: TestAnalyzer, mapping_fixture: dict) -> None:
+    def test_empty_entities(
+        self, analyzer: TestAnalyzer, mapping_fixture: dict
+    ) -> None:
         assert analyzer.predict_affected_tests([], mapping_fixture) == []
 
     def test_empty_mapping(self, analyzer: TestAnalyzer) -> None:
         assert analyzer.predict_affected_tests(["utils"], {}) == []
 
-    def test_function_call_match(self, analyzer: TestAnalyzer, project_dir: Path) -> None:
+    def test_function_call_match(
+        self, analyzer: TestAnalyzer, project_dir: Path
+    ) -> None:
         test_file = project_dir / "tests" / "test_utils.py"
-        mapping = {test_file: CodeTestMapping(
-            test_file=test_file,
-            covered_modules=[],
-            imported_modules=[],
-            called_functions=["helper"],
-        )}
+        mapping = {
+            test_file: CodeTestMapping(
+                test_file=test_file,
+                covered_modules=[],
+                imported_modules=[],
+                called_functions=["helper"],
+            )
+        }
         affected = analyzer.predict_affected_tests(["helper"], mapping)
         assert test_file in affected
 
     def test_import_match(self, analyzer: TestAnalyzer, project_dir: Path) -> None:
         test_file = project_dir / "tests" / "test_utils.py"
-        mapping = {test_file: CodeTestMapping(
-            test_file=test_file,
-            covered_modules=[],
-            imported_modules=["src.utils"],
-            called_functions=[],
-        )}
+        mapping = {
+            test_file: CodeTestMapping(
+                test_file=test_file,
+                covered_modules=[],
+                imported_modules=["src.utils"],
+                called_functions=[],
+            )
+        }
         affected = analyzer.predict_affected_tests(["src.utils"], mapping)
         assert test_file in affected
 
@@ -256,9 +276,7 @@ class TestSuggestMissingTests:
                 covered_modules=["utils"],
             )
         }
-        suggestions = analyzer.suggest_missing_tests(
-            ["utils"], test_mapping=mapping
-        )
+        suggestions = analyzer.suggest_missing_tests(["utils"], test_mapping=mapping)
         # utils is covered by test mapping → no suggestion
         assert suggestions == []
 
@@ -269,9 +287,7 @@ class TestSuggestMissingTests:
                 covered_modules=["other"],
             )
         }
-        suggestions = analyzer.suggest_missing_tests(
-            ["utils"], test_mapping=mapping
-        )
+        suggestions = analyzer.suggest_missing_tests(["utils"], test_mapping=mapping)
         assert len(suggestions) == 1
 
     def test_suggested_file_name(self, analyzer: TestAnalyzer) -> None:
@@ -338,6 +354,7 @@ class TestInternalHelpers:
 
     def test_extract_imports(self, analyzer: TestAnalyzer, tmp_path: Path) -> None:
         import ast
+
         source = "import os\nfrom pathlib import Path\n"
         tree = ast.parse(source)
         imports = analyzer._extract_imports(tree)
@@ -346,6 +363,7 @@ class TestInternalHelpers:
 
     def test_extract_calls(self, analyzer: TestAnalyzer) -> None:
         import ast
+
         source = "foo()\nbar.baz()\n"
         tree = ast.parse(source)
         calls = analyzer._extract_calls(tree)

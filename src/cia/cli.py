@@ -29,9 +29,21 @@ if TYPE_CHECKING:
 
 console = Console()
 
-_SKIP_DIRS = {"__pycache__", ".git", ".tox", "node_modules", ".venv", "venv",
-              ".mypy_cache", ".ruff_cache", ".pytest_cache", "dist", "build",
-              ".eggs", ".egg-info"}
+_SKIP_DIRS = {
+    "__pycache__",
+    ".git",
+    ".tox",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".pytest_cache",
+    "dist",
+    "build",
+    ".eggs",
+    ".egg-info",
+}
 
 
 def _build_project_graph(
@@ -40,12 +52,15 @@ def _build_project_graph(
     verbose: bool = False,
 ) -> DependencyGraph:
     """Parse every ``.py`` file under *repo_path* and return a populated graph."""
-    from cia.graph.dependency_graph import DependencyGraph as DependencyGraph  # noqa: F811, I001
+    from cia.graph.dependency_graph import (
+        DependencyGraph as DependencyGraph,
+    )  # noqa: F811, I001
     from cia.parser.python_parser import PythonParser
 
     parser = PythonParser()
     py_files = sorted(
-        p for p in repo_path.rglob("*.py")
+        p
+        for p in repo_path.rglob("*.py")
         if not any(part in _SKIP_DIRS for part in p.parts)
     )
     modules = []
@@ -85,6 +100,7 @@ def _approximate_coverage(
     for mod in graph.get_all_modules():
         result[mod] = 60.0 if mod in covered else 0.0
     return result
+
 
 def _extract_changed_symbols(
     changeset: ChangeSet,
@@ -129,12 +145,14 @@ def _extract_changed_symbols(
                         qual = f"{module_stem}::{cls_node.name}.{node.name}"
                         sym_type = "method"
                         break
-                symbols.append({
-                    "module": module_stem,
-                    "name": node.name,
-                    "qualified_name": qual,
-                    "symbol_type": sym_type,
-                })
+                symbols.append(
+                    {
+                        "module": module_stem,
+                        "name": node.name,
+                        "qualified_name": qual,
+                        "symbol_type": sym_type,
+                    }
+                )
     return symbols
 
 
@@ -167,22 +185,38 @@ def main(ctx: click.Context, verbose: bool) -> None:
 @main.command()
 @click.argument("path", default=".", type=click.Path(exists=True))
 @click.option(
-    "--format", "-f", "output_format",
+    "--format",
+    "-f",
+    "output_format",
     type=click.Choice(["json", "html", "markdown", "all"]),
     default="json",
     help="Output format (use 'all' to generate every format).",
 )
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Output file path (or base name for 'all').")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Output file path (or base name for 'all').",
+)
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
-@click.option("--commit-range", default=None,
-              help="Analyze a specific commit range (e.g. HEAD~3..HEAD).")
-@click.option("--threshold", type=int, default=None,
-              help="Fail if risk score exceeds this value (0-100).")
-@click.option("--explain", is_flag=True,
-              help="Show detailed risk breakdown.")
-@click.option("--test-only", is_flag=True,
-              help="Only show test recommendations (skip full report).")
+@click.option(
+    "--commit-range",
+    default=None,
+    help="Analyze a specific commit range (e.g. HEAD~3..HEAD).",
+)
+@click.option(
+    "--threshold",
+    type=int,
+    default=None,
+    help="Fail if risk score exceeds this value (0-100).",
+)
+@click.option("--explain", is_flag=True, help="Show detailed risk breakdown.")
+@click.option(
+    "--test-only",
+    is_flag=True,
+    help="Only show test recommendations (skip full report).",
+)
 @click.pass_context
 def analyze(
     ctx: click.Context,
@@ -279,7 +313,9 @@ def analyze(
         progress.add_task("Scoring risk…", total=None)
         scorer = RiskScorer()
         risk = scorer.calculate_risk(
-            changeset, graph=dep_graph, coverage_data=coverage_data,
+            changeset,
+            graph=dep_graph,
+            coverage_data=coverage_data,
         )
 
     # --- Build ImpactReport ---
@@ -293,7 +329,8 @@ def analyze(
         progress.add_task("Building impact report…", total=None)
         analyzer_engine = ImpactAnalyzer(dep_graph)
         impact_report = analyzer_engine.analyze_change_set(
-            changeset, risk_score=risk,
+            changeset,
+            risk_score=risk,
         )
 
     # --- Test-only mode ---
@@ -315,11 +352,7 @@ def analyze(
     def _write_or_print(content: str, ext: str) -> None:
         if output:
             base = Path(output)
-            out_path = (
-                base.with_suffix(f".{ext}")
-                if output_format == "all"
-                else base
-            )
+            out_path = base.with_suffix(f".{ext}") if output_format == "all" else base
             out_path.write_text(content, encoding="utf-8")
             console.print(f"[green]Report written to {out_path}[/green]")
         elif ext == "json":
@@ -328,8 +361,7 @@ def analyze(
             console.print(content)
 
     formats_to_generate = (
-        ["json", "html", "markdown"] if output_format == "all"
-        else [output_format]
+        ["json", "html", "markdown"] if output_format == "all" else [output_format]
     )
 
     for fmt in formats_to_generate:
@@ -369,13 +401,20 @@ def analyze(
 @main.command()
 @click.argument("path", default=".", type=click.Path(exists=True))
 @click.option(
-    "--format", "-f", "output_format",
+    "--format",
+    "-f",
+    "output_format",
     type=click.Choice(["json", "text", "dot"]),
     default="text",
     help="Output format for the graph.",
 )
-@click.option("--output", "-o", type=click.Path(), default=None,
-              help="Write graph to a file instead of stdout.")
+@click.option(
+    "--output",
+    "-o",
+    type=click.Path(),
+    default=None,
+    help="Write graph to a file instead of stdout.",
+)
 @click.pass_context
 def graph(
     ctx: click.Context,
@@ -459,12 +498,20 @@ def _graph_to_dot(dep_graph: DependencyGraph) -> str:
     default="none",
     help="Risk level at or above which the hook blocks the commit.",
 )
-@click.option("--force", is_flag=True,
-              help="Overwrite an existing pre-commit hook.")
-@click.option("--local", "scope", flag_value="local", default=True,
-              help="Install in the current repository only (default).")
-@click.option("--global", "scope", flag_value="global",
-              help="Install in the global Git template directory.")
+@click.option("--force", is_flag=True, help="Overwrite an existing pre-commit hook.")
+@click.option(
+    "--local",
+    "scope",
+    flag_value="local",
+    default=True,
+    help="Install in the current repository only (default).",
+)
+@click.option(
+    "--global",
+    "scope",
+    flag_value="global",
+    help="Install in the global Git template directory.",
+)
 @click.pass_context
 def install_hook(
     ctx: click.Context,
@@ -483,7 +530,9 @@ def install_hook(
         try:
             result = subprocess.run(
                 ["git", "config", "--global", "init.templateDir"],
-                capture_output=True, text=True, check=False,
+                capture_output=True,
+                text=True,
+                check=False,
             )
             template_dir = result.stdout.strip()
             if not template_dir:
@@ -505,6 +554,7 @@ def install_hook(
         # Check for existing non-CIA hook
         if not force and manager.hook_path.exists():
             from cia.git.hooks import _CIA_MARKER
+
             content = manager.hook_path.read_text(encoding="utf-8")
             if _CIA_MARKER not in content:
                 console.print(
@@ -548,13 +598,14 @@ def uninstall_hook(ctx: click.Context, path: str) -> None:
 
 @main.command("test")
 @click.argument("path", default=".", type=click.Path(exists=True))
-@click.option("--affected-only", is_flag=True,
-              help="Run only tests affected by current changes.")
-@click.option("--suggest", is_flag=True,
-              help="Show recommended new tests for uncovered changes.")
+@click.option(
+    "--affected-only", is_flag=True, help="Run only tests affected by current changes."
+)
+@click.option(
+    "--suggest", is_flag=True, help="Show recommended new tests for uncovered changes."
+)
 @click.option("--unstaged", is_flag=True, help="Include unstaged changes.")
-@click.option("--commit-range", default=None,
-              help="Analyze a specific commit range.")
+@click.option("--commit-range", default=None, help="Analyze a specific commit range.")
 @click.pass_context
 def test_cmd(
     ctx: click.Context,
@@ -620,9 +671,7 @@ def test_cmd(
 
     if affected_only:
         if not affected:
-            console.print(
-                "[green]No tests affected by the current changes.[/green]"
-            )
+            console.print("[green]No tests affected by the current changes.[/green]")
             return
         expr = ta.generate_pytest_expression(affected)
         args = ta.generate_pytest_args(affected)
@@ -638,13 +687,12 @@ def test_cmd(
 
     if suggest:
         suggestions = ta.suggest_missing_tests(
-            changed_modules, test_mapping=test_mapping,
+            changed_modules,
+            test_mapping=test_mapping,
             changed_symbols=changed_symbols or None,
         )
         if not suggestions:
-            console.print(
-                "[green]All changed modules have test coverage.[/green]"
-            )
+            console.print("[green]All changed modules have test coverage.[/green]")
             return
         suggest_report: dict[str, object] = {
             "suggestions": [
@@ -661,7 +709,8 @@ def test_cmd(
 
     # Default: show both affected tests and suggestions
     suggestions = ta.suggest_missing_tests(
-        changed_modules, test_mapping=test_mapping,
+        changed_modules,
+        test_mapping=test_mapping,
         changed_symbols=changed_symbols or None,
     )
     combined_report: dict[str, object] = {
@@ -712,9 +761,7 @@ def init_cmd(ctx: click.Context, path: str) -> None:
     rc_path = target / ".ciarc"
 
     if rc_path.exists():
-        console.print(
-            f"[yellow]Configuration file already exists:[/yellow] {rc_path}"
-        )
+        console.print(f"[yellow]Configuration file already exists:[/yellow] {rc_path}")
         ctx.exit(EXIT_OK)
         return
 
@@ -729,12 +776,11 @@ def init_cmd(ctx: click.Context, path: str) -> None:
 
 
 @main.command("config")
-@click.option("--set", "set_pair", default=None,
-              help="Set a config value: key=value")
-@click.option("--get", "get_key", default=None,
-              help="Get a config value by key.")
-@click.option("--edit", "open_editor", is_flag=True,
-              help="Open configuration file in $EDITOR.")
+@click.option("--set", "set_pair", default=None, help="Set a config value: key=value")
+@click.option("--get", "get_key", default=None, help="Get a config value by key.")
+@click.option(
+    "--edit", "open_editor", is_flag=True, help="Open configuration file in $EDITOR."
+)
 @click.argument("path", default=".", type=click.Path(exists=True))
 @click.pass_context
 def config_cmd(
@@ -789,9 +835,7 @@ def config_cmd(
     if open_editor:
         rc = find_config_file(target)
         if rc is None:
-            console.print(
-                "[yellow]No .ciarc found. Run 'cia init' first.[/yellow]"
-            )
+            console.print("[yellow]No .ciarc found. Run 'cia init' first.[/yellow]")
             ctx.exit(EXIT_ERROR)
             return
         editor = os.environ.get("EDITOR", os.environ.get("VISUAL", ""))

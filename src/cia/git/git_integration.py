@@ -145,6 +145,4 @@ class GitIntegration:
         try:
             return str(self.repo.git.show(f"{commit}:{filepath}"))
         except Exception as exc:
-            raise KeyError(
-                f"File {filepath!r} not found at commit {commit!r}"
-            ) from exc
+            raise KeyError(f"File {filepath!r} not found at commit {commit!r}") from exc

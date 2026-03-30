@@ -165,11 +165,7 @@ class CallGraph:
         A node is considered unreachable if its in-degree is 0, meaning
         nothing in the graph calls it.
         """
-        return {
-            node
-            for node, deg in self._graph.in_degree()
-            if deg == 0
-        }
+        return {node for node, deg in self._graph.in_degree() if deg == 0}
 
     # ------------------------------------------------------------------
     # Serialization
@@ -226,7 +222,4 @@ class CallGraph:
 
     def to_dict(self) -> dict[str, list[str]]:
         """Export the call graph as a simple adjacency dict."""
-        return {
-            node: list(self._graph.successors(node))
-            for node in self._graph.nodes
-        }
+        return {node: list(self._graph.successors(node)) for node in self._graph.nodes}

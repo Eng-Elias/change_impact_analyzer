@@ -273,7 +273,9 @@ class TestCombineRiskAnalysis:
 
     def test_merges_factors(self) -> None:
         rs1 = RiskScore(overall_score=10, level=RiskLevel.LOW, factor_scores={"a": 10})
-        rs2 = RiskScore(overall_score=20, level=RiskLevel.LOW, factor_scores={"a": 30, "b": 20})
+        rs2 = RiskScore(
+            overall_score=20, level=RiskLevel.LOW, factor_scores={"a": 30, "b": 20}
+        )
         combined = ImpactAnalyzer.combine_risk_analysis([rs1, rs2])
         assert combined.factor_scores["a"] == 30
         assert combined.factor_scores["b"] == 20

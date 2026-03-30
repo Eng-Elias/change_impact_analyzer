@@ -11,9 +11,9 @@ from cia.analyzer.impact_analyzer import ImpactReport
 # ---------------------------------------------------------------------------
 
 _LEVEL_EMOJI = {
-    "low": "\U0001f7e2",       # green circle
-    "medium": "\U0001f7e1",    # yellow circle
-    "high": "\U0001f7e0",      # orange circle
+    "low": "\U0001f7e2",  # green circle
+    "medium": "\U0001f7e1",  # yellow circle
+    "high": "\U0001f7e0",  # orange circle
     "critical": "\U0001f534",  # red circle
 }
 

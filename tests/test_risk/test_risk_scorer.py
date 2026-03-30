@@ -44,7 +44,10 @@ def _changeset(changes: list[Change] | None = None) -> ChangeSet:
     modified = [c.file_path for c in changes if c.change_type == "modified"]
     deleted = [c.file_path for c in changes if c.change_type == "deleted"]
     return ChangeSet(
-        changes=changes, added=added, modified=modified, deleted=deleted,
+        changes=changes,
+        added=added,
+        modified=modified,
+        deleted=deleted,
     )
 
 
@@ -228,19 +231,25 @@ class TestCombineScores:
 
 
 class TestCalculateRisk:
-    def test_empty_changeset(self, scorer: RiskScorer, empty_changeset: ChangeSet) -> None:
+    def test_empty_changeset(
+        self, scorer: RiskScorer, empty_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(empty_changeset)
         assert isinstance(risk, RiskScore)
         assert risk.overall_score >= 0.0
         assert risk.level in RiskLevel
 
-    def test_simple_changeset(self, scorer: RiskScorer, simple_changeset: ChangeSet) -> None:
+    def test_simple_changeset(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset)
         assert 0.0 <= risk.overall_score <= 100.0
         assert risk.level in RiskLevel
         assert len(risk.factor_scores) == len(RiskFactorType)
 
-    def test_with_graph(self, scorer: RiskScorer, simple_changeset: ChangeSet, graph: DependencyGraph) -> None:
+    def test_with_graph(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet, graph: DependencyGraph
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset, graph=graph)
         assert risk.overall_score >= 0.0
 
@@ -255,7 +264,9 @@ class TestCalculateRisk:
         risk = scorer.calculate_risk(cs, coverage_data={"utils": 90.0})
         assert risk.factor_scores.get("test_coverage", 100.0) < 80.0
 
-    def test_all_factors_present(self, scorer: RiskScorer, simple_changeset: ChangeSet) -> None:
+    def test_all_factors_present(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset)
         for ft in RiskFactorType:
             assert ft.value in risk.factor_scores
@@ -279,12 +290,16 @@ class TestCalculateRisk:
 
 
 class TestExplainability:
-    def test_explanations_present(self, scorer: RiskScorer, simple_changeset: ChangeSet) -> None:
+    def test_explanations_present(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset)
         assert len(risk.explanations) == len(RiskFactorType)
         assert all("/100" in e for e in risk.explanations)
 
-    def test_explanations_sorted_descending(self, scorer: RiskScorer, simple_changeset: ChangeSet) -> None:
+    def test_explanations_sorted_descending(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset)
         # extract scores from explanations
         scores = []
@@ -343,9 +358,7 @@ class TestWeightConfiguration:
         cs = _changeset([_change(added=list(range(100)))])
         risk = s.calculate_risk(cs)
         # Only change_size contributes
-        assert risk.overall_score == pytest.approx(
-            min(100 * 0.5, 100.0) * 1.0
-        )
+        assert risk.overall_score == pytest.approx(min(100 * 0.5, 100.0) * 1.0)
 
     def test_zero_weights(self) -> None:
         custom = {ft: 0.0 for ft in RiskFactorType}
@@ -375,6 +388,13 @@ class TestRiskCategorisation:
         risk = scorer.calculate_risk(cs, coverage_data={"utils": 100.0})
         assert risk.level == RiskLevel.LOW
 
-    def test_level_is_valid_enum(self, scorer: RiskScorer, simple_changeset: ChangeSet) -> None:
+    def test_level_is_valid_enum(
+        self, scorer: RiskScorer, simple_changeset: ChangeSet
+    ) -> None:
         risk = scorer.calculate_risk(simple_changeset)
-        assert risk.level in (RiskLevel.LOW, RiskLevel.MEDIUM, RiskLevel.HIGH, RiskLevel.CRITICAL)
+        assert risk.level in (
+            RiskLevel.LOW,
+            RiskLevel.MEDIUM,
+            RiskLevel.HIGH,
+            RiskLevel.CRITICAL,
+        )

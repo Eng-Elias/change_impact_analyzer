@@ -136,7 +136,10 @@ class TestHookPath:
 
 class TestAnalysisHelpers:
     def test_generate_report_basic(self) -> None:
-        analysis = {"risk_level": "medium", "details": ["Changed utils.py", "3 dependents"]}
+        analysis = {
+            "risk_level": "medium",
+            "details": ["Changed utils.py", "3 dependents"],
+        }
         report = HookManager.generate_pre_commit_report(analysis)
         assert "medium" in report
         assert "Changed utils.py" in report

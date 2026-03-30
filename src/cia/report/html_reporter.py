@@ -281,15 +281,17 @@ class HtmlReporter:
 
         impacts = []
         for impact in analysis.impacts:
-            impacts.append({
-                "file_path": str(impact.change.file_path),
-                "change_type": impact.change.change_type,
-                "added_lines": len(impact.change.added_lines),
-                "deleted_lines": len(impact.change.deleted_lines),
-                "directly_affected": impact.directly_affected,
-                "transitively_affected": impact.transitively_affected,
-                "affected_modules": impact.affected_modules,
-            })
+            impacts.append(
+                {
+                    "file_path": str(impact.change.file_path),
+                    "change_type": impact.change.change_type,
+                    "added_lines": len(impact.change.added_lines),
+                    "deleted_lines": len(impact.change.deleted_lines),
+                    "directly_affected": impact.directly_affected,
+                    "transitively_affected": impact.transitively_affected,
+                    "affected_modules": impact.affected_modules,
+                }
+            )
 
         risk_ctx = None
         if risk is not None:
@@ -323,10 +325,7 @@ def _build_graph_data(report: ImpactReport) -> dict[str, Any]:
     """Build a nodes+links dict for D3 force layout."""
     node_ids: set[str] = set()
     links: list[dict[str, str]] = []
-    changed_set = {
-        str(imp.change.file_path.stem)
-        for imp in report.analysis.impacts
-    }
+    changed_set = {str(imp.change.file_path.stem) for imp in report.analysis.impacts}
 
     for impact in report.analysis.impacts:
         src = impact.change.file_path.stem
@@ -335,8 +334,5 @@ def _build_graph_data(report: ImpactReport) -> dict[str, Any]:
             node_ids.add(mod)
             links.append({"source": src, "target": mod})
 
-    nodes = [
-        {"id": n, "changed": n in changed_set}
-        for n in sorted(node_ids)
-    ]
+    nodes = [{"id": n, "changed": n in changed_set} for n in sorted(node_ids)]
     return {"nodes": nodes, "links": links}

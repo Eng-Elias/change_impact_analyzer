@@ -69,9 +69,7 @@ class RiskScorer:
             churn_scores.append(
                 self.score_churn(str(change.file_path), git_history or [])
             )
-        factor_scores[RiskFactorType.CHURN] = (
-            max(churn_scores) if churn_scores else 0.0
-        )
+        factor_scores[RiskFactorType.CHURN] = max(churn_scores) if churn_scores else 0.0
 
         # --- dependents ---
         factor_scores[RiskFactorType.DEPENDENTS] = self.score_dependents(
@@ -173,9 +171,7 @@ class RiskScorer:
     @staticmethod
     def score_change_size(changes: list[Change]) -> float:
         """Score based on total lines added + deleted."""
-        total = sum(
-            len(c.added_lines) + len(c.deleted_lines) for c in changes
-        )
+        total = sum(len(c.added_lines) + len(c.deleted_lines) for c in changes)
         return min(total * 0.5, 100.0)
 
     @staticmethod

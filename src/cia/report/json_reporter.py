@@ -37,10 +37,12 @@ REPORT_SCHEMA: dict[str, Any] = {
                     "added_lines": {"type": "integer"},
                     "deleted_lines": {"type": "integer"},
                     "directly_affected": {
-                        "type": "array", "items": {"type": "string"},
+                        "type": "array",
+                        "items": {"type": "string"},
                     },
                     "transitively_affected": {
-                        "type": "array", "items": {"type": "string"},
+                        "type": "array",
+                        "items": {"type": "string"},
                     },
                     "affected_modules": {"type": "array", "items": {"type": "string"}},
                 },
@@ -96,15 +98,17 @@ class JsonReporter:
 
         changes = []
         for impact in analysis.impacts:
-            changes.append({
-                "file": str(impact.change.file_path),
-                "change_type": impact.change.change_type,
-                "added_lines": len(impact.change.added_lines),
-                "deleted_lines": len(impact.change.deleted_lines),
-                "directly_affected": impact.directly_affected,
-                "transitively_affected": impact.transitively_affected,
-                "affected_modules": impact.affected_modules,
-            })
+            changes.append(
+                {
+                    "file": str(impact.change.file_path),
+                    "change_type": impact.change.change_type,
+                    "added_lines": len(impact.change.added_lines),
+                    "deleted_lines": len(impact.change.deleted_lines),
+                    "directly_affected": impact.directly_affected,
+                    "transitively_affected": impact.transitively_affected,
+                    "affected_modules": impact.affected_modules,
+                }
+            )
 
         risk_dict: dict[str, Any] | None = None
         if report.risk is not None:

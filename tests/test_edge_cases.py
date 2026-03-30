@@ -21,7 +21,11 @@ from cia.cli import main
 
 def _git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
     return subprocess.run(
-        ["git", *args], cwd=str(repo), capture_output=True, text=True, check=check,
+        ["git", *args],
+        cwd=str(repo),
+        capture_output=True,
+        text=True,
+        check=check,
     )
 
 
@@ -205,9 +209,7 @@ class TestSyntaxErrors:
         """Analysing a repo with a broken file should not crash."""
         repo = _make_repo(tmp_path)
 
-        (repo / "broken.py").write_text(
-            "def whoops(\n", encoding="utf-8"
-        )
+        (repo / "broken.py").write_text("def whoops(\n", encoding="utf-8")
         _git(repo, "add", "broken.py")
 
         runner = CliRunner()
@@ -265,7 +267,11 @@ class TestNotGitRepo:
     def test_analyze_non_git_dir(self, tmp_path: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(main, ["analyze", str(tmp_path)])
-        assert result.exit_code != 0 or "Not a" in result.output or "Error" in result.output
+        assert (
+            result.exit_code != 0
+            or "Not a" in result.output
+            or "Error" in result.output
+        )
 
     def test_install_hook_non_git(self, tmp_path: Path) -> None:
         runner = CliRunner()
