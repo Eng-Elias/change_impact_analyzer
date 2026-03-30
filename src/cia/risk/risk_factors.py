@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     """Risk level categories with colour hints.
 
     - **LOW** (0–25): Safe to proceed.
@@ -25,7 +25,7 @@ class RiskLevel(str, Enum):
     CRITICAL = "critical"
 
 
-class RiskFactorType(str, Enum):
+class RiskFactorType(StrEnum):
     """Canonical risk-factor identifiers."""
 
     COMPLEXITY = "complexity"
