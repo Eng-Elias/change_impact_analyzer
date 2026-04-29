@@ -34,6 +34,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+mcp = [
+    "mcp>=1.0",
+]
 dev = [
     "pytest>=7.4",
     "pytest-cov>=4.1",
@@ -42,9 +45,13 @@ dev = [
     "mypy>=1.5",
     "pre-commit>=3.4",
 ]
+all = [
+    "change-impact-analyzer[mcp,dev]",
+]
 
 [project.scripts]
 cia = "cia.cli:main"
+cia-mcp = "cia_mcp.server:main"
 
 [project.urls]
 Homepage = "https://github.com/Eng-Elias/change_impact_analyzer"
@@ -53,7 +60,7 @@ Repository = "https://github.com/Eng-Elias/change_impact_analyzer"
 Issues = "https://github.com/Eng-Elias/change_impact_analyzer/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/cia"]
+packages = ["src/cia", "src/cia_mcp"]
 
 [tool.black]
 line-length = 88

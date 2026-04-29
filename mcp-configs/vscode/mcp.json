@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "cia": {
+      "type": "stdio",
+      "command": "cia-mcp",
+      "args": []
+    }
+  }
+}

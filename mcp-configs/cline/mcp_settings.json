@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cia": {
+      "command": "cia-mcp",
+      "args": [],
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
